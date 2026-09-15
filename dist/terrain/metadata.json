@@ -1,0 +1,66 @@
+{
+  "width": 2049,
+  "height": 1537,
+  "west": 15.194,
+  "south": 59.2415,
+  "east": 15.228,
+  "north": 59.2545,
+  "encoding": "uint16-le-centimetres",
+  "heightScale": 0.01,
+  "source": "m656_51.tif",
+  "sourceCRS": "EPSG:5845",
+  "sourceResolutionMetres": 1,
+  "verticalConversion": "h = H + N; SWEN17_RH2000",
+  "geoidSource": "https://cdn.proj.org/se_lantmateriet_SWEN17_RH2000.tif",
+  "geoidRangeMetres": [
+    28.29146583557128,
+    28.37877144813536
+  ],
+  "rh2000RangeMetres": [
+    24.429198589980583,
+    67.54104052787254
+  ],
+  "maxEncodingErrorMetres": 0.004999997598332584,
+  "samples": [
+    {
+      "row": 0,
+      "column": 0,
+      "longitude": 15.194,
+      "latitude": 59.2545,
+      "rh2000_m": 31.372282362137582,
+      "geoid_m": 28.353412218093858,
+      "ellipsoid_m": 59.72569458023144,
+      "encoded_m": 59.73
+    },
+    {
+      "row": 768,
+      "column": 1024,
+      "longitude": 15.211,
+      "latitude": 59.248000000000005,
+      "rh2000_m": 35.55285021723082,
+      "geoid_m": 28.334793567657456,
+      "ellipsoid_m": 63.887643784888276,
+      "encoded_m": 63.89
+    },
+    {
+      "row": 384,
+      "column": 512,
+      "longitude": 15.2025,
+      "latitude": 59.25125,
+      "rh2000_m": 30.736414932820736,
+      "geoid_m": 28.34375098347663,
+      "ellipsoid_m": 59.08016591629737,
+      "encoded_m": 59.08
+    },
+    {
+      "row": 1536,
+      "column": 2048,
+      "longitude": 15.228,
+      "latitude": 59.2415,
+      "rh2000_m": 63.59653442209478,
+      "geoid_m": 28.317959117889387,
+      "ellipsoid_m": 91.91449353998416,
+      "encoded_m": 91.91
+    }
+  ]
+}
