@@ -3,3 +3,4 @@
 
 .terrain-source{position:absolute;left:28px;bottom:155px;padding:8px 12px;background:#102c25eb;border:1px solid #9cbc7380;border-radius:6px;color:#d4ee88;font-size:13px;pointer-events:none}
 @media(max-width:800px){.terrain-source{left:12px;bottom:176px;max-width:calc(100% - 24px);font-size:12px}}
+.guide-overlay{position:absolute;right:18px;top:86px;width:min(360px,38vw);max-height:65vh;margin:0;padding:10px;background:rgba(10,35,29,.94);border:1px solid rgba(212,238,136,.45);border-radius:12px;z-index:5;box-shadow:0 12px 36px rgba(0,0,0,.35)}.guide-overlay img{display:block;width:100%;height:auto;max-height:58vh;object-fit:contain}.guide-overlay figcaption{font-size:13px;color:#d4ee88;margin:2px 28px 8px 2px}.guide-overlay button{position:absolute;right:8px;top:5px;border:0;background:none;color:#fff;font-size:24px;cursor:pointer}@media(max-width:700px){.guide-overlay{right:10px;top:74px;width:min(300px,72vw)}}
