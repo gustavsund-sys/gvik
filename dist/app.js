@@ -9,7 +9,7 @@ async function loadOrthophoto(){
  const response=await fetch('orthophoto/metadata.json');
  if(!response.ok)throw Error('Ortofotots metadata saknas');
  const m=await response.json(),rectangle=C.Rectangle.fromDegrees(...m.bounds);
- const provider=new C.UrlTemplateImageryProvider({url:'orthophoto/{z}/{x}/{y}.webp',
+ const provider=new C.UrlTemplateImageryProvider({url:'orthophoto/{z}/{x}/{y}.webp?v=east2026',
   rectangle,tilingScheme:new C.GeographicTilingScheme({rectangle,numberOfLevelZeroTilesX:m.levelZeroTilesX,numberOfLevelZeroTilesY:m.levelZeroTilesY}),
   tileWidth:m.tileSize,tileHeight:m.tileSize,minimumLevel:0,maximumLevel:m.maximumLevel,
   hasAlphaChannel:true,credit:new C.Credit('Ortofoto © Lantmäteriet · CC BY 4.0 · 2026-05-02',true)});
