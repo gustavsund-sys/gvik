@@ -1,0 +1,28 @@
+{
+  "bounds": [
+    15.194,
+    59.2415,
+    15.228,
+    59.2545
+  ],
+  "tileSize": 512,
+  "maximumLevel": 3,
+  "levelZeroTilesX": 2,
+  "levelZeroTilesY": 1,
+  "sources": [
+    "o65675_5100_25_mr26",
+    "o65650_5100_25_mr26",
+    "o65675_5125_25_mr26"
+  ],
+  "sourceResolutionMetres": 0.16,
+  "date": "2026-05-02",
+  "sourceCRS": "EPSG:3006",
+  "tileCRS": "EPSG:4326",
+  "rasterSize": [
+    8192,
+    4096
+  ],
+  "tileCount": 170,
+  "attribution": "\u00a9 Lantm\u00e4teriet, CC BY 4.0",
+  "processing": "RGB, geographic reprojection, bilinear resampling, WebP quality 88; transparent outside supplied coverage"
+}
