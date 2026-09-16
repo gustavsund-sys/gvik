@@ -6,7 +6,7 @@
     59.2545
   ],
   "tileSize": 512,
-  "maximumLevel": 3,
+  "maximumLevel": 4,
   "levelZeroTilesX": 2,
   "levelZeroTilesY": 1,
   "sources": [
@@ -20,10 +20,11 @@
   "sourceCRS": "EPSG:3006",
   "tileCRS": "EPSG:4326",
   "rasterSize": [
-    8192,
-    4096
+    16384,
+    8192
   ],
-  "tileCount": 170,
+  "tileCount": 682,
+  "crop": "Rectangular orthophoto extent",
   "attribution": "\u00a9 Lantm\u00e4teriet, CC BY 4.0",
   "processing": "RGB, geographic reprojection, bilinear resampling, WebP quality 88; transparent outside supplied coverage"
 }
