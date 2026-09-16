@@ -24,6 +24,7 @@
     4096
   ],
   "tileCount": 170,
+  "crop": "Concave course outline expanded 50 metres",
   "attribution": "\u00a9 Lantm\u00e4teriet, CC BY 4.0",
   "processing": "RGB, geographic reprojection, bilinear resampling, WebP quality 88; transparent outside supplied coverage"
 }
