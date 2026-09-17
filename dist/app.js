@@ -101,7 +101,6 @@ function updateExport(){ $('export').disabled=!(state.areas.length || Object.key
 const areaStyle={tee:['#f4d35e','Tee'],green:['#8ee072','Green'],bunker:['#f3e5b5','Bunker'],water:['#69b9e9','Vatten'],fairway:['#b8dc86','Fairway'],other:['#d4a7f2','Övrigt']};
 function areaCenter(points){return[points.reduce((s,p)=>s+p[0],0)/points.length,points.reduce((s,p)=>s+p[1],0)/points.length]}
 function areaLabelPosition(area){
-  const center=areaCenter(area.points);if(area.type!=='tee')return{position:center,pixelOffset:new C.Cartesian2(0,0),verticalOrigin:C.VerticalOrigin.CENTER};
   const north=area.points.reduce((best,p)=>p[1]>best[1]?p:best,area.points[0]);
   return{position:north,pixelOffset:new C.Cartesian2(0,-12),verticalOrigin:C.VerticalOrigin.BOTTOM};
 }
