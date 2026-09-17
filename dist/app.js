@@ -9,7 +9,7 @@ try {
   const saved = JSON.parse(store.getItem('gustavsvik-editor-v2') || '{}');
   if (Array.isArray(saved.boundary) && saved.boundary.every(validPoint)) state.boundary = saved.boundary;
   if (saved.guides && typeof saved.guides === 'object') {
-    for (const [id, g] of Object.entries(saved.guides)) if (+id >= 1 && +id <= 18 && validPoint([g.lon,g.lat])) state.guides[id] = {lon:+g.lon,lat:+g.lat,size:Math.min(700,Math.max(100,+g.size||320)),rotation:Math.min(180,Math.max(-180,+g.rotation||0))};
+    for (const [id, g] of Object.entries(saved.guides)) if (+id >= 1 && +id <= 18 && (validPoint([g.lon,g.lat]) || (Array.isArray(g.corners) && g.corners.length===4 && g.corners.every(validPoint)))) state.guides[id] = {lon:+g.lon||0,lat:+g.lat||0,size:Math.min(700,Math.max(100,+g.size||320)),rotation:Math.min(180,Math.max(-180,+g.rotation||0)),corners:Array.isArray(g.corners)&&g.corners.length===4?g.corners.map(p=>[+p[0],+p[1]]):null};
   }
   if (saved.routes && typeof saved.routes === 'object') state.routes = saved.routes;
 } catch {}
@@ -19,7 +19,8 @@ try {
 } catch {}
 
 let C, viewer, localTerrain, outlineSource, orthophotoLayer;
-let routeEntities=[], measurement=[], boundaryEntities=[], guideEntities={};
+let routeEntities=[], measurement=[], boundaryEntities=[], guidePrimitives=[], guideHandles=[];
+let draggingGuideCorner=null;
 let last=0;
 
 function status(message){ $('status').textContent=message; }
@@ -54,16 +55,27 @@ function updateBoundaryUi(){
   $('undo-boundary').disabled=!n; $('clear-boundary').disabled=!n; $('draw-boundary').textContent=state.mode==='boundary'?'Avsluta ritning':n?'Fortsätt rita':'Rita gräns';
 }
 
-function guideRectangle(g){
-  const h=g.size, w=h*(1100/1553), dLat=h/2/111320, dLon=w/2/(111320*Math.cos(C.Math.toRadians(g.lat)));
-  return C.Rectangle.fromDegrees(g.lon-dLon,g.lat-dLat,g.lon+dLon,g.lat+dLat);
+function guideCenter(g){
+  const corners=ensureGuideCorners(g); return [corners.reduce((s,p)=>s+p[0],0)/4,corners.reduce((s,p)=>s+p[1],0)/4];
+}
+function ensureGuideCorners(g){
+  if(Array.isArray(g.corners)&&g.corners.length===4)return g.corners;
+  const h=g.size||320,w=h*(1100/1553),lat=g.lat,lon=g.lon,angle=(g.rotation||0)*Math.PI/180,cos=Math.cos(angle),sin=Math.sin(angle);
+  g.corners=[[-w/2,h/2],[w/2,h/2],[w/2,-h/2],[-w/2,-h/2]].map(([x,y])=>{const east=x*cos+y*sin,north=-x*sin+y*cos;return [lon+east/(111320*Math.cos(lat*Math.PI/180)),lat+north/111320]});
+  return g.corners;
+}
+function guidePrimitive(id,g){
+  const corners=ensureGuideCorners(g), positions=[];
+  for(const p of corners){const z=(localTerrain?.sample(...p)??0)+1.2,cart=C.Cartesian3.fromDegrees(p[0],p[1],z);positions.push(cart.x,cart.y,cart.z)}
+  const geometry=new C.Geometry({attributes:{position:new C.GeometryAttribute({componentDatatype:C.ComponentDatatype.DOUBLE,componentsPerAttribute:3,values:new Float64Array(positions)}),st:new C.GeometryAttribute({componentDatatype:C.ComponentDatatype.FLOAT,componentsPerAttribute:2,values:new Float32Array([0,1,1,1,1,0,0,0])})},indices:new Uint16Array([0,1,2,0,2,3]),primitiveType:C.PrimitiveType.TRIANGLES,boundingSphere:C.BoundingSphere.fromVertices(positions)});
+  const material=new C.Material({fabric:{type:'Image',uniforms:{image:`guides/hole-${id}.png`,color:C.Color.WHITE.withAlpha(.7)}}});
+  return viewer.scene.primitives.add(new C.Primitive({geometryInstances:new C.GeometryInstance({geometry}),appearance:new C.EllipsoidSurfaceAppearance({material,aboveGround:true,translucent:true,faceForward:true,flat:true}),asynchronous:false,allowPicking:false}));
 }
 function redrawGuides(){
-  for(const e of Object.values(guideEntities)) viewer.entities.remove(e); guideEntities={};
-  for(const [id,g] of Object.entries(state.guides)){
-    const show=state.showAll || state.view===id;
-    guideEntities[id]=viewer.entities.add({show,rectangle:{coordinates:guideRectangle(g),material:new C.ImageMaterialProperty({image:`guides/hole-${id}.jpg`,transparent:true,color:C.Color.WHITE.withAlpha(.7)}),rotation:C.Math.toRadians(g.rotation),stRotation:C.Math.toRadians(g.rotation),classificationType:C.ClassificationType.TERRAIN,zIndex:20}});
-  }
+  guidePrimitives.forEach(p=>viewer.scene.primitives.remove(p));guidePrimitives=[];clearEntities(guideHandles);
+  for(const [id,g] of Object.entries(state.guides)) if(state.showAll||state.view===id) guidePrimitives.push(guidePrimitive(id,g));
+  const selected=state.guides[state.view];
+  if(selected) ensureGuideCorners(selected).forEach((p,index)=>{const e=viewer.entities.add({position:C.Cartesian3.fromDegrees(...p),point:{pixelSize:17,color:C.Color.fromCssColorString('#ffcf66'),outlineColor:C.Color.WHITE,outlineWidth:3,heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY}});e.addProperty('guideCorner');e.guideCorner={id:state.view,index};guideHandles.push(e)});
   document.querySelectorAll('.hole-button').forEach(b=>b.classList.toggle('placed',!!state.guides[b.dataset.view]));
   viewer.scene.requestRender(); updateExport();
 }
@@ -112,7 +124,7 @@ function mapPoint(position){ const ray=viewer.camera.getPickRay(position),pos=vi
 function handleMapClick(click){
   if(!state.mode)return; const p=mapPoint(click.position); if(!p){status('Markera inom Gustavsviksbanans område.');return}
   if(state.mode==='guide'){
-    state.guides[state.view]={lon:p[0],lat:p[1],size:320,rotation:0}; state.mode=null; persist(); redrawGuides(); updateGuideUi(); status(`Banguiden för hål ${state.view} är placerad med 70 % opacitet.`); return;
+    state.guides[state.view]={lon:p[0],lat:p[1],size:320,rotation:0,corners:null}; ensureGuideCorners(state.guides[state.view]); state.mode=null; persist(); redrawGuides(); updateGuideUi(); status(`Banguiden för hål ${state.view} är placerad. Dra i de fyra gula hörnpunkterna för att passa in den.`); return;
   }
   if(state.mode==='boundary'){
     state.boundary.push(p); persist(); boundaryDraw(); status(state.boundary.length<3?'Fortsätt runt banan. Minst tre punkter behövs.':`${state.boundary.length} gränspunkter sparade. Fortsätt eller tryck Avsluta ritning.`); return;
@@ -128,10 +140,12 @@ function handleMapClick(click){
 }
 
 function moveGuide(direction){
-  const g=state.guides[state.view]; if(!g)return; const step=5, latStep=step/111320, lonStep=step/(111320*Math.cos(g.lat*Math.PI/180));
-  if(direction==='north')g.lat+=latStep;if(direction==='south')g.lat-=latStep;if(direction==='east')g.lon+=lonStep;if(direction==='west')g.lon-=lonStep;
+  const g=state.guides[state.view]; if(!g)return; const center=guideCenter(g),step=5, latStep=step/111320, lonStep=step/(111320*Math.cos(center[1]*Math.PI/180));
+  const dx=direction==='east'?lonStep:direction==='west'?-lonStep:0,dy=direction==='north'?latStep:direction==='south'?-latStep:0;g.corners=ensureGuideCorners(g).map(p=>[p[0]+dx,p[1]+dy]);g.lon=center[0]+dx;g.lat=center[1]+dy;
   persist(); redrawGuides(); status(`Hål ${state.view} flyttades 5 meter.`);
 }
+function resizeGuide(g,newSize){const old=g.size||320,c=guideCenter(g),scale=newSize/old;g.corners=ensureGuideCorners(g).map(p=>[c[0]+(p[0]-c[0])*scale,c[1]+(p[1]-c[1])*scale]);g.size=newSize;g.lon=c[0];g.lat=c[1];}
+function rotateGuide(g,newRotation){const old=g.rotation||0,delta=(newRotation-old)*Math.PI/180,c=guideCenter(g),cos=Math.cos(delta),sin=Math.sin(delta),latCos=Math.cos(c[1]*Math.PI/180);g.corners=ensureGuideCorners(g).map(p=>{const x=(p[0]-c[0])*111320*latCos,y=(p[1]-c[1])*111320;return[c[0]+(x*cos+y*sin)/(111320*latCos),c[1]+(-x*sin+y*cos)/111320]});g.rotation=newRotation;g.lon=c[0];g.lat=c[1];}
 function exportWork(){
   const payload={format:'gustavsvik-map-workshop',version:2,exportedAt:new Date().toISOString(),crs:'EPSG:4326',guideOpacity:0.7,boundary:state.boundary,guides:state.guides,routes:state.routes,source:'https://gustavsvik-flyover.gustavsund.chatgpt.site/'};
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'})); a.download=`gustavsvik-justeringar-${new Date().toISOString().slice(0,10)}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); status('Exportfilen är hämtad. Skicka den till mig när du är klar.');
@@ -146,6 +160,9 @@ async function boot(){
   try {const data=await fetch('course.geojson').then(r=>{if(!r.ok)throw Error();return r.json()});outlineSource=await C.GeoJsonDataSource.load(data,{clampToGround:true,fill:C.Color.fromCssColorString('#d4ee88').withAlpha(.12),stroke:C.Color.fromCssColorString('#d4ee88'),strokeWidth:1});await viewer.dataSources.add(outlineSource);outlineSource.show=false;} catch {$('outlines').disabled=true;}
   state.ready=true; boundaryDraw(); redrawGuides(); updateGuideUi(); updateFlight(); status('Rita yttergränsen eller välj ett hål.'); requestAnimationFrame(frame);
   viewer.screenSpaceEventHandler.setInputAction(handleMapClick,C.ScreenSpaceEventType.LEFT_CLICK);
+  viewer.screenSpaceEventHandler.setInputAction(event=>{const picked=viewer.scene.pick(event.position),corner=picked?.id?.guideCorner;if(!corner)return;draggingGuideCorner=corner;viewer.scene.screenSpaceCameraController.enableInputs=false;status(`Dra hörn ${corner.index+1} till rätt plats.`);},C.ScreenSpaceEventType.LEFT_DOWN);
+  viewer.screenSpaceEventHandler.setInputAction(event=>{if(!draggingGuideCorner)return;const p=mapPoint(event.endPosition);if(!p)return;const g=state.guides[draggingGuideCorner.id];if(!g)return;ensureGuideCorners(g)[draggingGuideCorner.index]=p;const c=guideCenter(g);g.lon=c[0];g.lat=c[1];redrawGuides();},C.ScreenSpaceEventType.MOUSE_MOVE);
+  viewer.screenSpaceEventHandler.setInputAction(()=>{if(!draggingGuideCorner)return;persist();status(`Hörnformen för hål ${draggingGuideCorner.id} sparades.`);draggingGuideCorner=null;viewer.scene.screenSpaceCameraController.enableInputs=true;},C.ScreenSpaceEventType.LEFT_UP);
 }
 
 for(let i=1;i<=18;i++){ const b=document.createElement('button');b.className='hole-button';b.dataset.view=String(i);b.innerHTML=`<span>${String(i).padStart(2,'0')}</span><small>Hål ${i}</small>`;b.onclick=()=>selectView(String(i));$('hole-grid').appendChild(b); }
@@ -156,8 +173,8 @@ $('clear-boundary').onclick=()=>{state.boundary=[];state.mode=null;persist();bou
 $('place-guide').onclick=()=>startMode('guide',`Klicka mitt på hål ${state.view} för att placera banguiden.`);
 $('reposition-guide').onclick=()=>startMode('guide',`Klicka på en ny mittpunkt för hål ${state.view}.`);
 $('remove-guide').onclick=()=>{delete state.guides[state.view];persist();redrawGuides();updateGuideUi();status(`Banguiden för hål ${state.view} togs bort.`);};
-$('guide-size').oninput=e=>{const g=state.guides[state.view];if(!g)return;g.size=+e.target.value;$('size-value').value=`${g.size} m`;persist();redrawGuides();};
-$('guide-rotation').oninput=e=>{const g=state.guides[state.view];if(!g)return;g.rotation=+e.target.value;$('rotation-value').value=`${g.rotation}°`;persist();redrawGuides();};
+$('guide-size').oninput=e=>{const g=state.guides[state.view];if(!g)return;resizeGuide(g,+e.target.value);$('size-value').value=`${g.size} m`;persist();redrawGuides();};
+$('guide-rotation').oninput=e=>{const g=state.guides[state.view];if(!g)return;rotateGuide(g,+e.target.value);$('rotation-value').value=`${g.rotation}°`;persist();redrawGuides();};
 document.querySelectorAll('[data-move]').forEach(b=>b.onclick=()=>moveGuide(b.dataset.move));
 $('show-all-guides').onchange=e=>{state.showAll=e.target.checked;redrawGuides();}; $('edit-route').onclick=()=>startMode('route','Klicka först på tee, sedan en flygpunkt och sist på green.'); $('export').onclick=exportWork;
 $('measure').onclick=()=>state.mode==='measure'?(state.mode=null,$('measure').setAttribute('aria-pressed','false'),status('Mätningen avbröts.')):startMode('measure','Klicka på två punkter för att mäta kartavståndet.');
