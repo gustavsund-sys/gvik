@@ -4,8 +4,8 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Gustavsvik · Flyover</title><meta name="description" content="Märk upp Gustavsviks golfhål på en interaktiv 3D-karta.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230c2925'/%3E%3Cpath d='M11 25V7l14 5-14 5' stroke='%23d4ee88' stroke-width='2' fill='none'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.133.0/Build/Cesium/Widgets/widgets.css"><link rel="stylesheet" href="style.css?v=62">
-  <script src="https://cdn.jsdelivr.net/npm/cesium@1.133.0/Build/Cesium/Cesium.js" defer></script><script src="local-terrain.js" defer></script><script src="app.js?v=63" defer></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.133.0/Build/Cesium/Widgets/widgets.css"><link rel="stylesheet" href="style.css?v=63">
+  <script src="https://cdn.jsdelivr.net/npm/cesium@1.133.0/Build/Cesium/Cesium.js" defer></script><script src="local-terrain.js" defer></script><script src="app.js?v=64" defer></script>
 </head>
 <body class="user-mode">
   <header><div class="brand"><span class="mark">G<span>↗</span></span><div>GUSTAVSVIK<small>ÖREBRO CITY GOLF & COUNTRY CLUB</small></div></div><span class="badge">KARTVERKSTAD · PROTOTYP</span></header>
@@ -48,7 +48,7 @@
       <section class="data-note"><details><summary>Källor och noggrannhet</summary><p>Ortofoto © Lantmäteriet, CC BY 4.0, fotograferat 2 maj 2026. Höjdmodell från Lantmäteriet.</p><p>Manuella markeringar sparas i den här webbläsaren och följer med i exportfilen.</p></details></section>
     </aside>
     <section class="map-shell" aria-label="Interaktiv karta över Gustavsviksbanan">
-      <div id="map"></div><img id="course-logo" class="course-logo-overlay" src="assets/orebro-city-golf-logo.png" alt="Örebro City Golf & Country Club"><div class="map-heading"><span class="eyebrow">GUSTAVSVIK / ÖREBRO</span><h2 id="map-title">Hela banan</h2></div><div id="terrain-source" class="terrain-source" role="status">Ansluter terräng…</div><div id="status" role="status">Laddar flygbilder…</div>
+      <div id="map"></div><button id="hole-menu-toggle" class="hole-menu-toggle" aria-expanded="false" aria-controls="hole-grid" title="Välj hål" aria-label="Öppna hålväljaren">☰<span>Hål</span></button><img id="course-logo" class="course-logo-overlay" src="assets/orebro-city-golf-logo.png" alt="Örebro City Golf & Country Club"><div class="map-heading"><span class="eyebrow">GUSTAVSVIK / ÖREBRO</span><h2 id="map-title">Hela banan</h2></div><div id="terrain-source" class="terrain-source" role="status">Ansluter terräng…</div><div id="status" role="status">Laddar flygbilder…</div>
       <div class="map-tools"><button id="overview" title="Visa hela banan">Hela banan</button><button id="top" title="Visa banan rakt uppifrån">Ovanifrån</button><button id="reset" title="Återställ kameran">Återställ</button><button id="relief" aria-pressed="false">Visa terräng</button><div id="measure-menu" class="measure-menu"><button id="measure-toggle" class="measure-toggle" aria-expanded="false" aria-controls="measure" title="Visa mätverktyg" aria-label="Visa mätverktyg">📏</button><button id="measure" aria-pressed="false">Mät avstånd</button></div><label class="toggle"><input type="checkbox" id="outlines"> Bankonturer</label></div>
       <div class="flight-controls"><button id="play" class="primary" disabled>▶ Flyg över banan</button><label for="progress">Flygning</label><input id="progress" type="range" min="0" max="1000" value="0" aria-label="Position i flygningen"><span id="time">0:00 / 0:24</span></div>
       <p class="map-hint" id="hint">Vänsterdrag: flytta · Högerdrag: rotera · Scroll: zooma</p><div id="error" hidden role="alert"></div>

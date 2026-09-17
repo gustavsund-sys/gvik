@@ -33,6 +33,7 @@ let mapLabelLayout=[];
 let last=0;
 
 function status(message){ $('status').textContent=message; }
+function setHoleMenu(open){document.body.classList.toggle('hole-menu-open',open);$('hole-menu-toggle').setAttribute('aria-expanded',String(open));$('hole-menu-toggle').setAttribute('aria-label',open?'Stäng hålväljaren':'Öppna hålväljaren');requestAnimationFrame(()=>{if(viewer){viewer.resize();viewer.scene.requestRender();layoutMapLabels()}})}
 function applyUiMode(mode){const builder=mode==='builder';document.body.classList.toggle('builder-mode',builder);document.body.classList.toggle('user-mode',!builder);$('mode-title').textContent=builder?'Märk upp banan.':'Utforska banan.';$('mode-intro').textContent=builder?'Välj ett hål och justera banans områden, axlar och kameravyer.':'Välj ett hål, utforska längderna och växla mellan överblick och greenvy.';$('settings-toggle').textContent=builder?'×':'⚙';$('settings-toggle').title=builder?'Stäng kartbyggaren':'Kartbyggare · låst';$('settings-toggle').setAttribute('aria-label',builder?'Stäng kartbyggaren':'Öppna lösenordsskyddad kartbyggare');updateGuideUi()}
 function persist(){
   try { store.setItem('gustavsvik-editor-v2', JSON.stringify({boundary:state.boundary,guides:state.guides,routes:state.routes,areas:state.areas,axes:state.axes,defaultAxes:state.defaultAxes,axisTees:state.axisTees,par3:state.par3,holeViews:state.holeViews,startView:state.startView})); }
@@ -196,6 +197,7 @@ function applyHoleView(id){const view=state.holeViews[id];if(!view||!Number.isFi
 function applyGreenView(id){const green=state.areas.find(area=>String(area.hole)===String(id)&&area.type==='green');if(!green){status(`Greenområde saknas för hål ${id}.`);return false}const target=areaCenter(green.points),saved=state.holeViews[id],heading=Number.isFinite(saved?.heading)?saved.heading:viewer.camera.heading,height=localTerrain?.sample(...target)??0;viewer.camera.lookAt(C.Cartesian3.fromDegrees(target[0],target[1],height),new C.HeadingPitchRange(heading,C.Math.toRadians(-78),98));viewer.camera.lookAtTransform(C.Matrix4.IDENTITY);viewer.scene.requestRender();requestAnimationFrame(layoutMapLabels);return true}
 function selectView(id){
   if(id!=='overview' && !(+id>=1 && +id<=18)) throw Error('Ogiltig vy');
+  if(id!=='overview'&&document.body.classList.contains('user-mode'))setHoleMenu(false);
   stop(); state.view=String(id); state.mode=null; state.points=[]; selectedAreaId=null; clearEntities(measurement); $('measure').setAttribute('aria-pressed','false');
   $('course-logo').hidden=state.view!=='overview';
   document.querySelectorAll('.hole-button').forEach(b=>{const on=b.dataset.view===state.view;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
@@ -267,6 +269,7 @@ async function boot(){
 
 for(let i=1;i<=18;i++){ const b=document.createElement('button');b.className='hole-button';b.disabled=true;b.dataset.view=String(i);b.innerHTML=`<span>${i}</span><small>Hål ${i}</small>`;b.onclick=()=>selectView(String(i));$('hole-grid').appendChild(b); }
 $('settings-toggle').onclick=()=>{if(document.body.classList.contains('builder-mode')){applyUiMode('user');status('Spelarläget visas.');return}$('builder-lock').hidden=false;$('builder-password').value='';$('builder-lock-error').hidden=true;requestAnimationFrame(()=>$('builder-password').focus())};
+$('hole-menu-toggle').onclick=()=>setHoleMenu(!document.body.classList.contains('hole-menu-open'));
 $('builder-lock-cancel').onclick=()=>{$('builder-lock').hidden=true};
 $('builder-lock-form').onsubmit=e=>{e.preventDefault();if($('builder-password').value!=='gvik2026'){$('builder-lock-error').hidden=false;$('builder-password').select();return}$('builder-lock').hidden=true;applyUiMode('builder');status('Kartbyggaren är upplåst.');};
 $('saved-view').onclick=()=>{if(!applyHoleView(state.view))reset();drawAreasAndAxis();layoutMapLabels();status(`Överblick visas för hål ${state.view}.`);};
