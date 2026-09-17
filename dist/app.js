@@ -178,6 +178,7 @@ function applyGreenView(id){const green=state.areas.find(area=>String(area.hole)
 function selectView(id){
   if(id!=='overview' && !(+id>=1 && +id<=18)) throw Error('Ogiltig vy');
   stop(); state.view=String(id); state.mode=null; state.points=[]; selectedAreaId=null; clearEntities(measurement); $('measure').setAttribute('aria-pressed','false');
+  $('course-logo').hidden=state.view!=='overview';
   document.querySelectorAll('.hole-button').forEach(b=>{const on=b.dataset.view===state.view;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
   $('map-title').textContent=state.view==='overview'?'Hela banan':`Hål ${state.view}`;clearEntities(routeEntities);clearEntities(distanceEntities);redrawGuides();updateBoundaryUi();updateFlight();if(state.view==='overview'||!applyHoleView(state.view))reset();drawAreasAndAxis();updateGuideUi();requestAnimationFrame(()=>{drawAreasAndAxis();viewer.scene.requestRender()});
   const builder=document.body.classList.contains('builder-mode');status(state.view==='overview'?(builder?'Välj ett hål för att märka upp banans delar.':'Välj ett hål för att visa överblick och längder.'):(builder?`Märk upp områden och justera längdaxeln för hål ${state.view}.`:`Hål ${state.view} visas. Dra i längdaxelns punkter för att undersöka avstånden.`));
