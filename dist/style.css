@@ -7,3 +7,4 @@
 .axis-save{border-color:var(--lime);color:var(--lime)}
 .axis-panel select{width:100%;margin-bottom:10px;padding:9px 10px;border:1px solid #6e9185;border-radius:8px;background:#08261f;color:#f5f1e8}
 .view-save{margin-top:10px}
+.mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 14px}.mode-switch button.active{background:var(--lime);border-color:var(--lime);color:#173027;font-weight:750}.user-hole-controls{margin-top:12px;padding:12px;border:1px solid #55796d;border-radius:10px;background:#08261f}.user-hole-controls strong{display:block;margin-bottom:9px;font:600 20px Georgia,serif}.user-hole-controls p{margin:9px 0 0;color:#aebfb9;font-size:12px}.user-mode .builder-only{display:none!important}.builder-mode .user-hole-controls{display:none!important}

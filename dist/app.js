@@ -32,6 +32,7 @@ let mapLabelLayout=[];
 let last=0;
 
 function status(message){ $('status').textContent=message; }
+function applyUiMode(mode){const builder=mode==='builder';document.body.classList.toggle('builder-mode',builder);document.body.classList.toggle('user-mode',!builder);$('builder-mode').classList.toggle('active',builder);$('user-mode').classList.toggle('active',!builder);$('mode-title').textContent=builder?'Märk upp banan.':'Utforska banan.';$('mode-intro').textContent=builder?'Välj ett hål och justera banans områden, axlar och kameravyer.':'Välj ett hål, utforska längderna och växla mellan hålvy och greenvy.';store.setItem('gustavsvik-ui-mode',builder?'builder':'user');updateGuideUi()}
 function persist(){
   try { store.setItem('gustavsvik-editor-v2', JSON.stringify({boundary:state.boundary,guides:state.guides,routes:state.routes,areas:state.areas,axes:state.axes,defaultAxes:state.defaultAxes,axisTees:state.axisTees,par3:state.par3,holeViews:state.holeViews})); }
   catch { status('Justeringen fungerar, men kunde inte sparas i webbläsaren.'); }
@@ -97,6 +98,7 @@ function redrawGuides(){
 function updateGuideUi(){
   const id=state.view, isHole=id!=='overview';
   $('guide-editor').hidden=true; $('route-panel').hidden=true;$('markup-panel').hidden=!isHole;$('axis-panel').hidden=!isHole;
+  $('user-hole-controls').hidden=!isHole;if(isHole)$('user-hole-title').textContent=`Hål ${id}`;
   if(!isHole)return;
   const hasAxis=!!state.axes[id],axisSaved=hasAxis&&JSON.stringify(state.axes[id])===JSON.stringify(state.defaultAxes[id]);
   const selected=state.areas.find(a=>a.id===selectedAreaId&&String(a.hole)===id);
@@ -169,6 +171,7 @@ function reset(top=false){
   viewer.camera.lookAtTransform(C.Matrix4.IDENTITY); viewer.scene.requestRender(); $('time').textContent='0:00 / 0:24';
 }
 function applyHoleView(id){const view=state.holeViews[id];if(!view||!Number.isFinite(view.lon)||!Number.isFinite(view.lat)||!Number.isFinite(view.height))return false;viewer.camera.setView({destination:C.Cartesian3.fromDegrees(view.lon,view.lat,view.height),orientation:{heading:view.heading,pitch:view.pitch,roll:view.roll||0}});viewer.scene.requestRender();return true}
+function applyGreenView(id){const green=state.areas.find(area=>String(area.hole)===String(id)&&area.type==='green');if(!green){status(`Greenområde saknas för hål ${id}.`);return false}const target=areaCenter(green.points),saved=state.holeViews[id],heading=Number.isFinite(saved?.heading)?saved.heading:viewer.camera.heading,height=localTerrain?.sample(...target)??0;viewer.camera.lookAt(C.Cartesian3.fromDegrees(target[0],target[1],height),new C.HeadingPitchRange(heading,C.Math.toRadians(-78),85));viewer.camera.lookAtTransform(C.Matrix4.IDENTITY);viewer.scene.requestRender();requestAnimationFrame(layoutMapLabels);return true}
 function selectView(id){
   if(id!=='overview' && !(+id>=1 && +id<=18)) throw Error('Ogiltig vy');
   stop(); state.view=String(id); state.mode=null; state.points=[]; selectedAreaId=null; clearEntities(measurement); $('measure').setAttribute('aria-pressed','false');
@@ -235,6 +238,9 @@ async function boot(){
 }
 
 for(let i=1;i<=18;i++){ const b=document.createElement('button');b.className='hole-button';b.disabled=true;b.dataset.view=String(i);b.innerHTML=`<span>${String(i).padStart(2,'0')}</span><small>Hål ${i}</small>`;b.onclick=()=>selectView(String(i));$('hole-grid').appendChild(b); }
+$('user-mode').onclick=()=>applyUiMode('user');$('builder-mode').onclick=()=>applyUiMode('builder');
+$('saved-view').onclick=()=>{if(!applyHoleView(state.view))reset();drawAreasAndAxis();layoutMapLabels();status(`Sparad hålvy visas för hål ${state.view}.`);};
+$('green-view').onclick=()=>{if(applyGreenView(state.view)){drawAreasAndAxis();layoutMapLabels();status(`Greenvy visas för hål ${state.view}.`)}};
 $('overview').onclick=()=>selectView('overview'); $('reset').onclick=()=>reset(); $('top').onclick=()=>reset(true);
 $('draw-area').onclick=()=>{selectedAreaId=null;drawAreasAndAxis();updateGuideUi();startMode('area',`Klicka runt ${($('area-label').value.trim()||$('area-type').selectedOptions[0].text).toLowerCase()} för hål ${state.view}.`)};
 $('finish-area').onclick=()=>{if(state.mode!=='area'||state.points.length<3)return;const fallback=`${$('area-type').selectedOptions[0].text} (Hål ${state.view})`,name=$('area-label').value.trim()||fallback,area={id:`${state.view}-${Date.now()}`,hole:+state.view,type:$('area-type').value,name,points:state.points.map(p=>p.slice())};state.areas.push(area);selectedAreaId=area.id;state.mode=null;state.points=[];clearEntities(measurement);persist();drawAreasAndAxis();redrawGuides();updateGuideUi();status(`${name} sparades och är markerat för redigering.`);};
@@ -266,4 +272,5 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape'&&state.mode){state.mod
 
 if(navigator.modelContext?.registerTool) navigator.modelContext.registerTool({name:'select_gustavsvik_view',description:'Välj översikten eller ett av hål 1 till 18 i kartverkstaden.',inputSchema:{type:'object',properties:{view:{type:'string',enum:['overview',...Array.from({length:18},(_,i)=>String(i+1))]}},required:['view'],additionalProperties:false},execute:({view})=>({content:[{type:'text',text:JSON.stringify(selectView(view))}]} )});
 
+applyUiMode(store.getItem('gustavsvik-ui-mode')||'user');
 boot().catch(e=>{console.error(e);$('error').hidden=false;$('error').textContent=e.message||'Kartan kunde inte starta.';$('status').textContent='Kunde inte starta kartan';});
