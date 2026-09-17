@@ -18,7 +18,7 @@ try {
   for (const [id, route] of Object.entries(legacy)) if (!state.routes[id] && Array.isArray(route) && route.length === 3 && route.every(validPoint)) state.routes[id] = route;
 } catch {}
 
-let C, viewer, localTerrain, outlineSource, orthophotoLayer;
+let C, viewer, localTerrain, outlineSource, orthophotoLayer, orthophotoBounds, courseMaskEntity;
 let routeEntities=[], distanceEntities=[], measurement=[], boundaryEntities=[], guidePrimitives=[], guideHandles=[];
 let draggingGuideCorner=null;
 let last=0;
@@ -38,7 +38,7 @@ function addMarker(point,label,color='#fff'){
 
 async function loadOrthophoto(){
   const response=await fetch('orthophoto/metadata.json'); if(!response.ok) throw Error('Ortofotots metadata saknas');
-  const m=await response.json(), rectangle=C.Rectangle.fromDegrees(...m.bounds);
+  const m=await response.json(), rectangle=C.Rectangle.fromDegrees(...m.bounds);orthophotoBounds=m.bounds;
   const provider=new C.UrlTemplateImageryProvider({url:'orthophoto/{z}/{x}/{y}.webp?v=native16',rectangle,tilingScheme:new C.GeographicTilingScheme({rectangle,numberOfLevelZeroTilesX:m.levelZeroTilesX,numberOfLevelZeroTilesY:m.levelZeroTilesY}),tileWidth:m.tileSize,tileHeight:m.tileSize,minimumLevel:0,maximumLevel:m.maximumLevel,hasAlphaChannel:true,credit:new C.Credit('Ortofoto © Lantmäteriet · CC BY 4.0 · 2026-05-02',true)});
   orthophotoLayer=viewer.imageryLayers.addImageryProvider(provider); state.imagery=true;
   provider.errorEvent.addEventListener(()=>status('En ortofotoruta kunde inte laddas. Ladda om för att försöka igen.'));
@@ -48,10 +48,16 @@ async function loadOrthophoto(){
 
 function boundaryDraw(){
   clearEntities(boundaryEntities); const pts=state.boundary;
+  updateBoundaryUi();if(state.mode!=='boundary'){viewer.scene.requestRender();return;}
   pts.forEach((p,i)=>boundaryEntities.push(addMarker(p,String(i+1),'#ffcf66')));
   if(pts.length>=2) boundaryEntities.push(viewer.entities.add({polyline:{positions:C.Cartesian3.fromDegreesArray((pts.length>=3?[...pts,pts[0]]:pts).flat()),width:4,material:C.Color.fromCssColorString('#ffcf66'),clampToGround:true}}));
   if(pts.length>=3) boundaryEntities.push(viewer.entities.add({polygon:{hierarchy:C.Cartesian3.fromDegreesArray(pts.flat()),material:C.Color.fromCssColorString('#ffcf66').withAlpha(.12),outline:true,outlineColor:C.Color.fromCssColorString('#ffcf66'),heightReference:C.HeightReference.CLAMP_TO_GROUND,classificationType:C.ClassificationType.TERRAIN}}));
-  updateBoundaryUi(); viewer.scene.requestRender();
+  viewer.scene.requestRender();
+}
+function drawCourseMask(){
+  if(courseMaskEntity){viewer.entities.remove(courseMaskEntity);courseMaskEntity=null}if(!orthophotoBounds||state.boundary.length<3)return;
+  const [west,south,east,north]=orthophotoBounds,outer=C.Cartesian3.fromDegreesArray([west,south,east,south,east,north,west,north]),inner=C.Cartesian3.fromDegreesArray(state.boundary.flat());
+  courseMaskEntity=viewer.entities.add({polygon:{hierarchy:new C.PolygonHierarchy(outer,[new C.PolygonHierarchy(inner)]),material:C.Color.fromCssColorString('#061d18').withAlpha(.68),heightReference:C.HeightReference.CLAMP_TO_GROUND,classificationType:C.ClassificationType.TERRAIN,zIndex:3}});viewer.scene.requestRender();
 }
 function updateBoundaryUi(){
   const n=state.boundary.length; $('boundary-count').textContent=n ? `${n} punkter${n>=3?' · redo att exportera':''}` : 'Ingen gräns markerad';
@@ -120,7 +126,7 @@ function selectView(id){
   stop(); state.view=String(id); state.mode=null; state.points=[]; clearEntities(measurement); $('measure').setAttribute('aria-pressed','false');
   document.querySelectorAll('.hole-button').forEach(b=>{const on=b.dataset.view===state.view;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
   $('map-title').textContent=state.view==='overview'?'Hela banan':`Hål ${state.view}`; routeDraw(); redrawGuides(); updateGuideUi(); updateBoundaryUi(); updateFlight(); reset();
-  status(state.view==='overview'?'Rita yttergränsen eller välj ett hål.':state.guides[state.view]?'Justera banguiden med reglagen.':'Tryck på Placera banguiden och klicka mitt på hålet.');
+  status(state.view==='overview'?'Välj ett hål för att visa banguide och avstånd.':state.guides[state.view]?'Justera banguiden med reglagen.':'Tryck på Placera banguiden och klicka mitt på hålet.');
   return {view:state.view,guidePlaced:!!state.guides[state.view]};
 }
 
@@ -170,7 +176,7 @@ async function boot(){
   try { localTerrain=await GustavsvikTerrain.create(C); viewer.terrainProvider=localTerrain.provider; state.terrain=true;state.localTerrain=true;$('terrain-source').textContent='Lantmäteriet · 1 m källdata';viewer.terrainProvider.errorEvent.addEventListener(e=>{console.error('Terrain:',e.message);status('Höjddata kunde inte laddas fullt ut.');});reset(); }
   catch(e){console.error(e);$('terrain-source').textContent='Höjdmodellen kunde inte laddas';status('Din höjdmodell saknas i vyn. Plan mark visas.');}
   try {const data=await fetch('course.geojson').then(r=>{if(!r.ok)throw Error();return r.json()});outlineSource=await C.GeoJsonDataSource.load(data,{clampToGround:true,fill:C.Color.fromCssColorString('#d4ee88').withAlpha(.12),stroke:C.Color.fromCssColorString('#d4ee88'),strokeWidth:1});await viewer.dataSources.add(outlineSource);outlineSource.show=false;} catch {$('outlines').disabled=true;}
-  state.ready=true; boundaryDraw(); redrawGuides(); updateGuideUi(); updateFlight(); status('Rita yttergränsen eller välj ett hål.'); requestAnimationFrame(frame);
+  state.ready=true; boundaryDraw(); drawCourseMask(); redrawGuides(); updateGuideUi(); updateFlight(); status('Välj ett hål för att visa banguide och avstånd.'); requestAnimationFrame(frame);
   viewer.screenSpaceEventHandler.setInputAction(handleMapClick,C.ScreenSpaceEventType.LEFT_CLICK);
   viewer.screenSpaceEventHandler.setInputAction(event=>{const picked=viewer.scene.pick(event.position),handle=picked?.id?.guideCorner;if(!handle)return;const anchor=mapPoint(event.position),g=state.guides[handle.id];if(!anchor||!g)return;draggingGuideCorner={...handle,anchor,original:ensureGuideCorners(g).map(p=>p.slice())};viewer.scene.screenSpaceCameraController.enableInputs=false;status(handle.index==='center'?'Dra mittenhandtaget för att flytta hela banguiden.':`Dra hörn ${handle.index+1} till rätt plats.`);},C.ScreenSpaceEventType.LEFT_DOWN);
   viewer.screenSpaceEventHandler.setInputAction(event=>{if(!draggingGuideCorner)return;const p=mapPoint(event.endPosition);if(!p)return;const drag=draggingGuideCorner,g=state.guides[drag.id];if(!g)return;if(drag.index==='center'){const dx=p[0]-drag.anchor[0],dy=p[1]-drag.anchor[1];g.corners=drag.original.map(q=>[q[0]+dx,q[1]+dy]);}else ensureGuideCorners(g)[drag.index]=p;const c=guideCenter(g);g.lon=c[0];g.lat=c[1];redrawGuides();},C.ScreenSpaceEventType.MOUSE_MOVE);

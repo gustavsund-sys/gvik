@@ -11,14 +11,14 @@
   <header><div class="brand"><span class="mark">G<span>↗</span></span><div>GUSTAVSVIK<small>ÖREBRO CITY GOLF & COUNTRY CLUB</small></div></div><span class="badge">KARTVERKSTAD · PROTOTYP</span></header>
   <main>
     <aside>
-      <div class="eyebrow">PASSA IN BANAN</div><h1>Bygg kartan för hand.</h1><p class="intro">Rita banans ytterkant och passa sedan in klubbens banguide hål för hål.</p>
-      <section class="editor-block boundary-block">
+      <div class="eyebrow">GUSTAVSVIK 18 HÅL</div><h1>Utforska banan.</h1><p class="intro">Välj ett hål i taget och passa in klubbens banguide mot flygbilden.</p>
+      <section class="editor-block boundary-block" hidden aria-hidden="true">
         <div class="section-heading"><span class="step">1</span><div><h2>Banans yttergräns</h2><small id="boundary-count">Ingen gräns markerad</small></div></div>
         <p>Klicka punkter längs vägen runt banan. Minst tre punkter behövs.</p>
         <div class="button-row"><button id="draw-boundary">Rita gräns</button><button id="undo-boundary" class="text-button" disabled>Ångra</button><button id="clear-boundary" class="text-button danger" disabled>Rensa</button></div>
       </section>
       <section class="editor-block guide-block">
-        <div class="section-heading"><span class="step">2</span><div><h2>Välj hål</h2><small>Officiella banguider 1–18</small></div></div>
+        <div class="section-heading"><span class="step">1</span><div><h2>Välj hål</h2><small>Officiella banguider 1–18</small></div></div>
         <nav id="hole-grid" class="hole-grid" aria-label="Välj hål"></nav>
         <div id="guide-editor" hidden>
           <div class="selected-hole"><strong id="guide-title">Hål 1</strong><span>70 % opacitet</span></div><p class="corner-help">Dra mittenhandtaget för att flytta hela guiden. Dra de fyra gula hörnpunkterna för att ändra formen.</p>
