@@ -127,14 +127,13 @@ function drawAreasAndAxis(){
 }
 function updateAxisWhileDragging(){
   const axis=state.axes[state.view];if(!axis)return;
-  if(axisDragEntity)axisDragEntity.polyline.positions=axis.map(p=>C.Cartesian3.fromDegrees(p[0],p[1],(localTerrain?.sample(...p)??0)+6));
   for(const entity of axisEntities.filter(entity=>entity.axisHandle).sort((a,b)=>a.axisHandle.index-b.axisHandle.index)){const index=entity.axisHandle.index,direct=index?new C.EllipsoidGeodesic(C.Cartographic.fromDegrees(...axis[0]),C.Cartographic.fromDegrees(...axis[index])).surfaceDistance:0;entity.position=C.Cartesian3.fromDegrees(...axis[index]);entity.label.text=index===0?'TEE':index===axis.length-1?`${Math.round(direct)} m · GREEN`:`${Math.round(direct)} m`;}
   viewer.scene.requestRender();
 }
 function setAxisDragStyle(active){
-  const line=axisEntities.find(entity=>entity.polyline),axis=state.axes[state.view];if(!line||!axis)return;
+  const line=axisEntities.find(entity=>entity.polyline);if(!line)return;
   line.show=!active;if(axisDragEntity){viewer.entities.remove(axisDragEntity);axisDragEntity=null}
-  if(active)axisDragEntity=viewer.entities.add({polyline:{positions:axis.map(p=>C.Cartesian3.fromDegrees(p[0],p[1],(localTerrain?.sample(...p)??0)+6)),width:7,material:C.Color.fromCssColorString('#d4ee88'),arcType:C.ArcType.NONE}});viewer.scene.requestRender();
+  viewer.scene.requestRender();
 }
 function defaultAxis(){
   const guide=state.guides[state.view];let start,end;if(guide&&ensureGuideCorners(guide).length===4){const c=ensureGuideCorners(guide);start=[(c[2][0]+c[3][0])/2,(c[2][1]+c[3][1])/2];end=[(c[0][0]+c[1][0])/2,(c[0][1]+c[1][1])/2];}else{const offset=(+state.view-9)*.00012;start=[center[0]+offset,center[1]-.0012];end=[center[0]+offset,center[1]+.0012];}
