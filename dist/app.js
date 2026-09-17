@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const store = new URLSearchParams(location.search).has('test') ? sessionStorage : localStorage;
 const center = [15.2105, 59.2478];
 const validPoint = p => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite) && p[0] > 15.18 && p[0] < 15.24 && p[1] > 59.23 && p[1] < 59.26;
-const state = {view:'overview', playing:false, progress:0, ready:false, mode:null, points:[], routes:{}, boundary:[], guides:{}, areas:[], axes:{}, defaultAxes:{}, axisTees:{}, par3:{}, holeViews:{}, terrain:false, localTerrain:false, imagery:false};
+const state = {view:'overview', playing:false, progress:0, ready:false, mode:null, points:[], routes:{}, boundary:[], guides:{}, areas:[], axes:{}, defaultAxes:{}, axisTees:{}, par3:{}, holeViews:{}, startView:null, terrain:false, localTerrain:false, imagery:false};
 
 try {
   const saved = JSON.parse(store.getItem('gustavsvik-editor-v2') || '{}');
@@ -18,6 +18,7 @@ try {
   if (saved.axisTees && typeof saved.axisTees === 'object') state.axisTees=saved.axisTees;
   if (saved.par3 && typeof saved.par3 === 'object') state.par3=saved.par3;
   if (saved.holeViews && typeof saved.holeViews === 'object') state.holeViews=saved.holeViews;
+  if (saved.startView && Number.isFinite(saved.startView.lon) && Number.isFinite(saved.startView.lat) && Number.isFinite(saved.startView.height)) state.startView=saved.startView;
   for(const [id,isPar3] of Object.entries(state.par3))if(isPar3){for(const collection of [state.axes,state.defaultAxes]){const axis=collection[id];if(axis?.length===2){const [start,end]=axis;collection[id]=[start,[(start[0]+end[0])/2,(start[1]+end[1])/2],end]}}}
 } catch {}
 try {
@@ -34,11 +35,11 @@ let last=0;
 function status(message){ $('status').textContent=message; }
 function applyUiMode(mode){const builder=mode==='builder';document.body.classList.toggle('builder-mode',builder);document.body.classList.toggle('user-mode',!builder);$('mode-title').textContent=builder?'Märk upp banan.':'Utforska banan.';$('mode-intro').textContent=builder?'Välj ett hål och justera banans områden, axlar och kameravyer.':'Välj ett hål, utforska längderna och växla mellan överblick och greenvy.';$('settings-toggle').textContent=builder?'×':'⚙';$('settings-toggle').title=builder?'Stäng kartbyggaren':'Kartbyggare · låst';$('settings-toggle').setAttribute('aria-label',builder?'Stäng kartbyggaren':'Öppna lösenordsskyddad kartbyggare');updateGuideUi()}
 function persist(){
-  try { store.setItem('gustavsvik-editor-v2', JSON.stringify({boundary:state.boundary,guides:state.guides,routes:state.routes,areas:state.areas,axes:state.axes,defaultAxes:state.defaultAxes,axisTees:state.axisTees,par3:state.par3,holeViews:state.holeViews})); }
+  try { store.setItem('gustavsvik-editor-v2', JSON.stringify({boundary:state.boundary,guides:state.guides,routes:state.routes,areas:state.areas,axes:state.axes,defaultAxes:state.defaultAxes,axisTees:state.axisTees,par3:state.par3,holeViews:state.holeViews,startView:state.startView})); }
   catch { status('Justeringen fungerar, men kunde inte sparas i webbläsaren.'); }
 }
 async function loadEditorDefaults(){
-  try{const defaults=await fetch('editor-defaults.json').then(r=>{if(!r.ok)throw Error();return r.json()});if(!state.boundary.length&&Array.isArray(defaults.boundary))state.boundary=defaults.boundary;if(defaults.guides)for(const [id,g] of Object.entries(defaults.guides))if(!state.guides[id])state.guides[id]=g;if(defaults.routes)for(const [id,r] of Object.entries(defaults.routes))if(!state.routes[id])state.routes[id]=r;if(!state.areas.length&&Array.isArray(defaults.areas))state.areas=defaults.areas;if(defaults.axes)for(const [id,axis] of Object.entries(defaults.axes)){if(!state.axes[id])state.axes[id]=axis.map(p=>p.slice());if(!state.defaultAxes[id])state.defaultAxes[id]=axis.map(p=>p.slice())}if(defaults.axisTees)for(const [id,areaId] of Object.entries(defaults.axisTees))if(!state.axisTees[id])state.axisTees[id]=areaId;if(defaults.par3)for(const [id,value] of Object.entries(defaults.par3))if(!state.par3[id])state.par3[id]=!!value;if(defaults.holeViews)for(const [id,view] of Object.entries(defaults.holeViews))if(!state.holeViews[id])state.holeViews[id]=view}catch{}
+  try{const defaults=await fetch('editor-defaults.json').then(r=>{if(!r.ok)throw Error();return r.json()});if(!state.boundary.length&&Array.isArray(defaults.boundary))state.boundary=defaults.boundary;if(defaults.guides)for(const [id,g] of Object.entries(defaults.guides))if(!state.guides[id])state.guides[id]=g;if(defaults.routes)for(const [id,r] of Object.entries(defaults.routes))if(!state.routes[id])state.routes[id]=r;if(!state.areas.length&&Array.isArray(defaults.areas))state.areas=defaults.areas;if(defaults.axes)for(const [id,axis] of Object.entries(defaults.axes)){if(!state.axes[id])state.axes[id]=axis.map(p=>p.slice());if(!state.defaultAxes[id])state.defaultAxes[id]=axis.map(p=>p.slice())}if(defaults.axisTees)for(const [id,areaId] of Object.entries(defaults.axisTees))if(!state.axisTees[id])state.axisTees[id]=areaId;if(defaults.par3)for(const [id,value] of Object.entries(defaults.par3))if(!state.par3[id])state.par3[id]=!!value;if(defaults.holeViews)for(const [id,view] of Object.entries(defaults.holeViews))if(!state.holeViews[id])state.holeViews[id]=view;if(!state.startView&&defaults.startView)state.startView=defaults.startView}catch{}
 }
 function clearEntities(list){ list.forEach(e=>viewer.entities.remove(e)); list.length=0; }
 function addMarker(point,label,color='#fff'){
@@ -168,6 +169,7 @@ function stop(){ state.playing=false; $('play').textContent=state.view==='overvi
 function updateFlight(){ $('play').disabled=!state.ready||(state.view!=='overview'&&!state.routes[state.view]); $('progress').disabled=$('play').disabled; }
 function reset(top=false){
   stop(); state.progress=0; $('progress').value=0; const pts=state.routes[state.view]; let target=center,range=1400;
+  if(state.view==='overview'&&!top&&state.startView){viewer.camera.setView({destination:C.Cartesian3.fromDegrees(state.startView.lon,state.startView.lat,state.startView.height),orientation:{heading:state.startView.heading,pitch:state.startView.pitch,roll:state.startView.roll||0}});viewer.scene.requestRender();$('time').textContent='0:00 / 0:24';return}
   if(pts){target=pts[1];range=650} viewer.camera.lookAt(C.Cartesian3.fromDegrees(...target,localTerrain?.sample(...target)??50),new C.HeadingPitchRange(C.Math.toRadians(10),C.Math.toRadians(top?-90:-48),range));
   viewer.camera.lookAtTransform(C.Matrix4.IDENTITY); viewer.scene.requestRender(); $('time').textContent='0:00 / 0:24';
 }
@@ -220,7 +222,7 @@ function moveGuide(direction){
 function resizeGuide(g,newSize){const old=g.size||320,c=guideCenter(g),scale=newSize/old;g.corners=ensureGuideCorners(g).map(p=>[c[0]+(p[0]-c[0])*scale,c[1]+(p[1]-c[1])*scale]);g.size=newSize;g.lon=c[0];g.lat=c[1];}
 function rotateGuide(g,newRotation){const old=g.rotation||0,delta=(newRotation-old)*Math.PI/180,c=guideCenter(g),cos=Math.cos(delta),sin=Math.sin(delta),latCos=Math.cos(c[1]*Math.PI/180);g.corners=ensureGuideCorners(g).map(p=>{const x=(p[0]-c[0])*111320*latCos,y=(p[1]-c[1])*111320;return[c[0]+(x*cos+y*sin)/(111320*latCos),c[1]+(-x*sin+y*cos)/111320]});g.rotation=newRotation;g.lon=c[0];g.lat=c[1];}
 function exportWork(){
-  const payload={format:'gustavsvik-course-markup',version:3,exportedAt:new Date().toISOString(),crs:'EPSG:4326',boundary:state.boundary,areas:state.areas,axes:state.axes,defaultAxes:state.defaultAxes,axisTees:state.axisTees,par3:state.par3,holeViews:state.holeViews,source:'https://gustavsvik-flyover.gustavsund.chatgpt.site/'};
+  const payload={format:'gustavsvik-course-markup',version:4,exportedAt:new Date().toISOString(),crs:'EPSG:4326',boundary:state.boundary,areas:state.areas,axes:state.axes,defaultAxes:state.defaultAxes,axisTees:state.axisTees,par3:state.par3,holeViews:state.holeViews,startView:state.startView,source:'https://gustavsvik-flyover.gustavsund.chatgpt.site/'};
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'})); a.download=`gustavsvik-justeringar-${new Date().toISOString().slice(0,10)}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); status('Exportfilen är hämtad. Skicka den till mig när du är klar.');
 }
 
@@ -254,6 +256,7 @@ $('axis-kind').onchange=e=>{const hole=state.view;if(hole==='overview')return;st
 $('axis-tee').onchange=e=>{state.axisTees[state.view]=e.target.value;lockAxisToSelectedTee(state.view);persist();drawAreasAndAxis();updateGuideUi();status(`Längdaxeln är nu kopplad till ${e.target.selectedOptions[0].text}.`);};
 $('save-axis').onclick=()=>{const axis=state.axes[state.view];if(!axis)return;const snapshot=axis.map(p=>[Number(p[0]),Number(p[1])]);state.axes[state.view]=snapshot.map(p=>p.slice());state.defaultAxes[state.view]=snapshot.map(p=>p.slice());persist();drawAreasAndAxis();updateGuideUi();status(`Standardaxeln för hål ${state.view} sparades vid tee ${snapshot[0][0].toFixed(6)}, ${snapshot[0][1].toFixed(6)}.`);};
 $('save-view').onclick=()=>{if(state.view==='overview')return;const p=viewer.camera.positionCartographic;state.holeViews[state.view]={lon:C.Math.toDegrees(p.longitude),lat:C.Math.toDegrees(p.latitude),height:p.height,heading:viewer.camera.heading,pitch:viewer.camera.pitch,roll:viewer.camera.roll};persist();status(`Aktuell kartvy sparades som standard för hål ${state.view}.`);};
+$('save-start-view').onclick=()=>{const p=viewer.camera.positionCartographic;state.startView={lon:C.Math.toDegrees(p.longitude),lat:C.Math.toDegrees(p.latitude),height:p.height,heading:viewer.camera.heading,pitch:viewer.camera.pitch,roll:viewer.camera.roll};persist();$('start-view-status').textContent='Startvyn är sparad ✓';status('Aktuell kameravinkel används nu som appens startvy. Exportera justeringarna för att skicka med den.');};
 $('draw-boundary').onclick=()=>{if(state.mode==='boundary'){state.mode=null;updateBoundaryUi();drawCourseMask();status(state.boundary.length>=3?'Gränsen är sparad. Du kan fortsätta senare.':'Gränsen behöver minst tre punkter.');}else startMode('boundary','Dra befintliga gula punkter eller klicka på kartan för att lägga till fler.');};
 $('undo-boundary').onclick=()=>{state.boundary.pop();persist();boundaryDraw();drawCourseMask();status('Senaste gränspunkten togs bort.');};
 $('clear-boundary').onclick=()=>{state.boundary=[];state.mode=null;persist();boundaryDraw();drawCourseMask();status('Banans yttergräns är rensad.');};
@@ -274,4 +277,5 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape'&&state.mode){state.mod
 if(navigator.modelContext?.registerTool) navigator.modelContext.registerTool({name:'select_gustavsvik_view',description:'Välj översikten eller ett av hål 1 till 18 i kartverkstaden.',inputSchema:{type:'object',properties:{view:{type:'string',enum:['overview',...Array.from({length:18},(_,i)=>String(i+1))]}},required:['view'],additionalProperties:false},execute:({view})=>({content:[{type:'text',text:JSON.stringify(selectView(view))}]} )});
 
 applyUiMode('user');
+$('start-view-status').textContent=state.startView?'Startvyn är sparad ✓':'Ingen egen startvy sparad';
 boot().catch(e=>{console.error(e);$('error').hidden=false;$('error').textContent=e.message||'Kartan kunde inte starta.';$('status').textContent='Kunde inte starta kartan';});
