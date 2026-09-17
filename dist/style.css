@@ -6,3 +6,4 @@
 .field-label{display:block;margin:12px 0 5px;color:#c9d8d2;font-size:12px;font-weight:700}.markup-panel select,.markup-panel input[type=text]{width:100%;margin-bottom:9px;padding:9px 10px;border:1px solid #6e9185;border-radius:8px;background:#08261f;color:#f5f1e8}.markup-panel input::placeholder{color:#7f9990}.area-actions{margin-top:8px}.axis-panel{border-color:#7f9c71}.axis-panel p{margin:10px 0}.markup-panel .wide{margin-top:2px}
 .axis-save{border-color:var(--lime);color:var(--lime)}
 .axis-panel select{width:100%;margin-bottom:10px;padding:9px 10px;border:1px solid #6e9185;border-radius:8px;background:#08261f;color:#f5f1e8}
+.view-save{margin-top:10px}
