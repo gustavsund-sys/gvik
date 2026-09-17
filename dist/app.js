@@ -173,7 +173,25 @@ function reset(top=false){
   if(pts){target=pts[1];range=650} viewer.camera.lookAt(C.Cartesian3.fromDegrees(...target,localTerrain?.sample(...target)??50),new C.HeadingPitchRange(C.Math.toRadians(10),C.Math.toRadians(top?-90:-48),range));
   viewer.camera.lookAtTransform(C.Matrix4.IDENTITY); viewer.scene.requestRender(); $('time').textContent='0:00 / 0:24';
 }
-function applyHoleView(id){const view=state.holeViews[id];if(!view||!Number.isFinite(view.lon)||!Number.isFinite(view.lat)||!Number.isFinite(view.height))return false;viewer.camera.setView({destination:C.Cartesian3.fromDegrees(view.lon,view.lat,view.height),orientation:{heading:view.heading,pitch:view.pitch,roll:view.roll||0}});viewer.scene.requestRender();return true}
+const teeViewMarginMetres=8;
+function tee54ForHole(id){return state.areas.find(area=>String(area.hole)===String(id)&&area.type==='tee'&&/tee\s*54\b/i.test(area.name||''))}
+function expandedAreaPoints(points,marginMetres){
+  const c=areaCenter(points),latCos=Math.cos(c[1]*Math.PI/180);
+  return points.map(point=>{const east=(point[0]-c[0])*111320*latCos,north=(point[1]-c[1])*111320,length=Math.hypot(east,north)||1,scale=(length+marginMetres)/length;return[c[0]+east*scale/(111320*latCos),c[1]+north*scale/111320]});
+}
+function frameTee54AtBottom(id,attempt=0){
+  if(state.view!==String(id)||attempt>2)return;
+  const tee=tee54ForHole(id);if(!tee)return;
+  const canvas=viewer.canvas,width=canvas.clientWidth,height=canvas.clientHeight;if(!width||!height)return;
+  const screens=expandedAreaPoints(tee.points,teeViewMarginMetres).map(point=>C.SceneTransforms.worldToWindowCoordinates(viewer.scene,terrainPosition(point,0))).filter(Boolean);if(screens.length!==tee.points.length)return;
+  const top=Math.min(...screens.map(p=>p.y)),bottom=Math.max(...screens.map(p=>p.y)),screenX=screens.reduce((sum,p)=>sum+p.x,0)/screens.length;
+  const safeBottom=Math.max(76,Math.min(124,height*.14)),targetBottom=height-safeBottom,desiredCenterY=targetBottom-(bottom-top)/2,currentCenterY=(top+bottom)/2;
+  if(Math.abs(currentCenterY-desiredCenterY)<2){layoutMapLabels();return}
+  const ray=viewer.camera.getPickRay(new C.Cartesian2(Math.max(1,Math.min(width-1,screenX)),Math.max(1,Math.min(height-1,desiredCenterY)))),desiredGround=ray&&viewer.scene.globe.pick(ray,viewer.scene);if(!desiredGround)return;
+  const teeCenter=areaCenter(tee.points),teeGround=terrainPosition(teeCenter,0),delta=C.Cartesian3.subtract(teeGround,desiredGround,new C.Cartesian3()),distance=C.Cartesian3.magnitude(delta);if(!Number.isFinite(distance)||distance>.75*viewer.camera.positionCartographic.height)return;
+  viewer.camera.move(C.Cartesian3.normalize(delta,new C.Cartesian3()),distance);viewer.scene.requestRender();requestAnimationFrame(()=>frameTee54AtBottom(id,attempt+1));
+}
+function applyHoleView(id){const view=state.holeViews[id];if(!view||!Number.isFinite(view.lon)||!Number.isFinite(view.lat)||!Number.isFinite(view.height))return false;viewer.camera.setView({destination:C.Cartesian3.fromDegrees(view.lon,view.lat,view.height),orientation:{heading:view.heading,pitch:view.pitch,roll:view.roll||0}});viewer.scene.requestRender();requestAnimationFrame(()=>requestAnimationFrame(()=>frameTee54AtBottom(id)));return true}
 function applyGreenView(id){const green=state.areas.find(area=>String(area.hole)===String(id)&&area.type==='green');if(!green){status(`Greenområde saknas för hål ${id}.`);return false}const target=areaCenter(green.points),saved=state.holeViews[id],heading=Number.isFinite(saved?.heading)?saved.heading:viewer.camera.heading,height=localTerrain?.sample(...target)??0;viewer.camera.lookAt(C.Cartesian3.fromDegrees(target[0],target[1],height),new C.HeadingPitchRange(heading,C.Math.toRadians(-78),98));viewer.camera.lookAtTransform(C.Matrix4.IDENTITY);viewer.scene.requestRender();requestAnimationFrame(layoutMapLabels);return true}
 function selectView(id){
   if(id!=='overview' && !(+id>=1 && +id<=18)) throw Error('Ogiltig vy');
