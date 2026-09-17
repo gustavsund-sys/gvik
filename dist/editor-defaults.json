@@ -1,7 +1,7 @@
 {
   "format": "gustavsvik-course-markup",
-  "version": 3,
-  "exportedAt": "2026-09-17T12:10:17.056Z",
+  "version": 4,
+  "exportedAt": "2026-09-17T12:38:53.824Z",
   "crs": "EPSG:4326",
   "boundary": [
     [
@@ -4251,6 +4251,14 @@
       "pitch": -0.3901752799004019,
       "roll": 1.3843776169863986e-7
     }
+  },
+  "startView": {
+    "lon": 15.202242067192547,
+    "lat": 59.247718147156455,
+    "height": 1619.7038327200955,
+    "heading": 1.5738843710357422,
+    "pitch": -1.2614632853341479,
+    "roll": 0.00001179655689576009
   },
   "source": "https://gustavsvik-flyover.gustavsund.chatgpt.site/"
 }
