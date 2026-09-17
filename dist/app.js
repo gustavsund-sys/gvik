@@ -25,7 +25,7 @@ try {
 } catch {}
 
 let C, viewer, localTerrain, outlineSource, orthophotoLayer, orthophotoBounds, courseMaskEntity;
-let routeEntities=[], distanceEntities=[], measurement=[], boundaryEntities=[], guidePrimitives=[], guideHandles=[], areaEntities=[], axisEntities=[];
+let routeEntities=[], distanceEntities=[], measurement=[], boundaryEntities=[], courseFeatherEntities=[], guidePrimitives=[], guideHandles=[], areaEntities=[], axisEntities=[];
 let draggingAxisPoint=null, draggingAreaVertex=null, draggingBoundaryIndex=null, axisDragEntity=null, selectedAreaId=null, suppressMapClick=false;
 let last=0;
 
@@ -61,9 +61,10 @@ function boundaryDraw(){
   viewer.scene.requestRender();
 }
 function drawCourseMask(){
-  if(courseMaskEntity){viewer.entities.remove(courseMaskEntity);courseMaskEntity=null}if(!orthophotoBounds||state.boundary.length<3)return;
+  if(courseMaskEntity){viewer.entities.remove(courseMaskEntity);courseMaskEntity=null}clearEntities(courseFeatherEntities);if(!orthophotoBounds||state.boundary.length<3)return;
   const [west,south,east,north]=orthophotoBounds,outer=C.Cartesian3.fromDegreesArray([west,south,east,south,east,north,west,north]),inner=C.Cartesian3.fromDegreesArray(state.boundary.flat());
-  courseMaskEntity=viewer.entities.add({polygon:{hierarchy:new C.PolygonHierarchy(outer,[new C.PolygonHierarchy(inner)]),material:C.Color.fromCssColorString('#061d18').withAlpha(.68),heightReference:C.HeightReference.CLAMP_TO_GROUND,classificationType:C.ClassificationType.TERRAIN,zIndex:3}});viewer.scene.requestRender();
+  courseMaskEntity=viewer.entities.add({polygon:{hierarchy:new C.PolygonHierarchy(outer,[new C.PolygonHierarchy(inner)]),material:C.Color.fromCssColorString('#061d18').withAlpha(.68),heightReference:C.HeightReference.CLAMP_TO_GROUND,classificationType:C.ClassificationType.TERRAIN,zIndex:3}});
+  const closed=[...state.boundary,state.boundary[0]],positions=C.Cartesian3.fromDegreesArray(closed.flat());[[38,.06],[26,.08],[16,.1],[8,.13]].forEach(([width,alpha])=>courseFeatherEntities.push(viewer.entities.add({polyline:{positions,width,material:C.Color.fromCssColorString('#061d18').withAlpha(alpha),clampToGround:true}})));viewer.scene.requestRender();
 }
 function updateBoundaryUi(){
   const n=state.boundary.length; $('boundary-count').textContent=n ? `${n} punkter${n>=3?' · redo att exportera':''}` : 'Ingen gräns markerad';
@@ -105,6 +106,8 @@ function updateGuideUi(){
 function updateExport(){ $('export').disabled=!(state.areas.length || Object.keys(state.axes).length); }
 
 const areaStyle={tee:['#f4d35e','Tee'],green:['#8ee072','Green'],bunker:['#f3e5b5','Bunker'],water:['#69b9e9','Vatten'],fairway:['#b8dc86','Fairway'],other:['#d4a7f2','Övrigt']};
+const roundedLabelCache=new Map();
+function roundedTeeLabel(text,color){const key=`${text}|${color}`,cached=roundedLabelCache.get(key);if(cached)return cached;const scale=2,canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');ctx.font='600 13px Inter, system-ui, sans-serif';const width=Math.ceil(ctx.measureText(text).width)+22,height=30;canvas.width=width*scale;canvas.height=height*scale;ctx.scale(scale,scale);ctx.font='600 13px Inter, system-ui, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.globalAlpha=.4;ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(0,0,width,height,8);ctx.fill();ctx.globalAlpha=1;ctx.fillStyle='#08251f';ctx.fillText(text,width/2,height/2+.5);roundedLabelCache.set(key,canvas);return canvas}
 function areaVisualStyle(area){if(area.type!=='tee')return areaStyle[area.type]||areaStyle.other;const name=(area.name||'').toLowerCase();if(name.includes('tee 47'))return['#4aa3ff','Tee 47'];if(name.includes('tee 40'))return['#ef6262','Tee 40'];return['#f4d35e','Tee 54'];}
 function areaCenter(points){return[points.reduce((s,p)=>s+p[0],0)/points.length,points.reduce((s,p)=>s+p[1],0)/points.length]}
 function distanceBetween(a,b){return new C.EllipsoidGeodesic(C.Cartographic.fromDegrees(...a),C.Cartographic.fromDegrees(...b)).surfaceDistance}
@@ -119,7 +122,7 @@ function drawAreasAndAxis(){
   for(const area of state.areas.filter(a=>String(a.hole)===state.view)){
     const [color,label]=areaVisualStyle(area),labelPlacement=areaLabelPosition(area),displayName=(area.name||`${label} (Hål ${area.hole})`).trim(),selected=area.id===selectedAreaId;
     const polygon=viewer.entities.add({polygon:{hierarchy:C.Cartesian3.fromDegreesArray(area.points.flat()),material:C.Color.fromCssColorString(color).withAlpha(selected ? .5 : .34),outline:true,outlineColor:C.Color.fromCssColorString(color),heightReference:C.HeightReference.CLAMP_TO_GROUND,classificationType:C.ClassificationType.TERRAIN,zIndex:selected?12:8}});polygon.addProperty('areaId');polygon.areaId=area.id;areaEntities.push(polygon);
-    const areaLabel=viewer.entities.add({position:C.Cartesian3.fromDegrees(...labelPlacement.position),label:{text:displayName,font:'bold 13px sans-serif',fillColor:C.Color.fromCssColorString('#08251f'),showBackground:true,backgroundColor:C.Color.fromCssColorString(color).withAlpha(area.type==='tee' ? .4 : .92),backgroundPadding:new C.Cartesian2(8,5),pixelOffset:labelPlacement.pixelOffset,verticalOrigin:labelPlacement.verticalOrigin,heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY}});areaLabel.addProperty('areaId');areaLabel.areaId=area.id;areaEntities.push(areaLabel);
+    const areaLabel=area.type==='tee'?viewer.entities.add({position:C.Cartesian3.fromDegrees(...labelPlacement.position),billboard:{image:roundedTeeLabel(displayName,color),scale:.5,pixelOffset:labelPlacement.pixelOffset,verticalOrigin:C.VerticalOrigin.BOTTOM,heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY}}):viewer.entities.add({position:C.Cartesian3.fromDegrees(...labelPlacement.position),label:{text:displayName,font:'600 13px Inter, system-ui, sans-serif',fillColor:C.Color.fromCssColorString('#08251f'),showBackground:true,backgroundColor:C.Color.fromCssColorString(color).withAlpha(.92),backgroundPadding:new C.Cartesian2(8,5),pixelOffset:labelPlacement.pixelOffset,verticalOrigin:labelPlacement.verticalOrigin,heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY}});areaLabel.addProperty('areaId');areaLabel.areaId=area.id;areaEntities.push(areaLabel);
     if(selected){const closed=[...area.points,area.points[0]];areaEntities.push(viewer.entities.add({polyline:{positions:C.Cartesian3.fromDegreesArray(closed.flat()),width:5,material:C.Color.WHITE,clampToGround:true}}));area.points.forEach((p,index)=>{const vertex=viewer.entities.add({position:C.Cartesian3.fromDegrees(...p),point:{pixelSize:15,color:C.Color.fromCssColorString('#d4ee88').withAlpha(.75),outlineColor:C.Color.fromCssColorString('#08251f'),outlineWidth:3,heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY}});vertex.addProperty('areaVertex');vertex.areaVertex={areaId:area.id,index};areaEntities.push(vertex)})}
   }
   const axis=state.axes[state.view];if(!axis)return;axisEntities.push(viewer.entities.add({polyline:{positions:C.Cartesian3.fromDegreesArray(axis.flat()),width:4,material:new C.PolylineDashMaterialProperty({color:C.Color.fromCssColorString('#ffffff'),dashLength:18}),clampToGround:true}}));
@@ -207,7 +210,7 @@ function moveGuide(direction){
 function resizeGuide(g,newSize){const old=g.size||320,c=guideCenter(g),scale=newSize/old;g.corners=ensureGuideCorners(g).map(p=>[c[0]+(p[0]-c[0])*scale,c[1]+(p[1]-c[1])*scale]);g.size=newSize;g.lon=c[0];g.lat=c[1];}
 function rotateGuide(g,newRotation){const old=g.rotation||0,delta=(newRotation-old)*Math.PI/180,c=guideCenter(g),cos=Math.cos(delta),sin=Math.sin(delta),latCos=Math.cos(c[1]*Math.PI/180);g.corners=ensureGuideCorners(g).map(p=>{const x=(p[0]-c[0])*111320*latCos,y=(p[1]-c[1])*111320;return[c[0]+(x*cos+y*sin)/(111320*latCos),c[1]+(-x*sin+y*cos)/111320]});g.rotation=newRotation;g.lon=c[0];g.lat=c[1];}
 function exportWork(){
-  const payload={format:'gustavsvik-course-markup',version:3,exportedAt:new Date().toISOString(),crs:'EPSG:4326',boundary:state.boundary,areas:state.areas,axes:state.axes,defaultAxes:state.defaultAxes,axisTees:state.axisTees,source:'https://gustavsvik-flyover.gustavsund.chatgpt.site/'};
+  const payload={format:'gustavsvik-course-markup',version:3,exportedAt:new Date().toISOString(),crs:'EPSG:4326',boundary:state.boundary,areas:state.areas,axes:state.axes,defaultAxes:state.defaultAxes,axisTees:state.axisTees,par3:state.par3,source:'https://gustavsvik-flyover.gustavsund.chatgpt.site/'};
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'})); a.download=`gustavsvik-justeringar-${new Date().toISOString().slice(0,10)}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); status('Exportfilen är hämtad. Skicka den till mig när du är klar.');
 }
 
