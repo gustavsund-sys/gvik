@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const store = new URLSearchParams(location.search).has('test') ? sessionStorage : localStorage;
 const center = [15.2105, 59.2478];
 const validPoint = p => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite) && p[0] > 15.18 && p[0] < 15.24 && p[1] > 59.23 && p[1] < 59.26;
-const state = {view:'overview', playing:false, progress:0, ready:false, mode:null, points:[], routes:{}, boundary:[], guides:{}, areas:[], axes:{}, terrain:false, localTerrain:false, imagery:false};
+const state = {view:'overview', playing:false, progress:0, ready:false, mode:null, points:[], routes:{}, boundary:[], guides:{}, areas:[], axes:{}, defaultAxes:{}, terrain:false, localTerrain:false, imagery:false};
 
 try {
   const saved = JSON.parse(store.getItem('gustavsvik-editor-v2') || '{}');
@@ -14,6 +14,7 @@ try {
   if (saved.routes && typeof saved.routes === 'object') state.routes = saved.routes;
   if (Array.isArray(saved.areas)) state.areas = saved.areas.filter(a=>a&&+a.hole>=1&&+a.hole<=18&&Array.isArray(a.points)&&a.points.length>=3&&a.points.every(validPoint));
   if (saved.axes && typeof saved.axes === 'object') for(const [id,axis] of Object.entries(saved.axes))if(Array.isArray(axis)&&axis.length===4&&axis.every(validPoint))state.axes[id]=axis;
+  if (saved.defaultAxes && typeof saved.defaultAxes === 'object') for(const [id,axis] of Object.entries(saved.defaultAxes))if(Array.isArray(axis)&&axis.length===4&&axis.every(validPoint))state.defaultAxes[id]=axis;
 } catch {}
 try {
   const legacy = JSON.parse(store.getItem('gustavsvik-routes-v1') || '{}');
@@ -27,11 +28,11 @@ let last=0;
 
 function status(message){ $('status').textContent=message; }
 function persist(){
-  try { store.setItem('gustavsvik-editor-v2', JSON.stringify({boundary:state.boundary,guides:state.guides,routes:state.routes,areas:state.areas,axes:state.axes})); }
+  try { store.setItem('gustavsvik-editor-v2', JSON.stringify({boundary:state.boundary,guides:state.guides,routes:state.routes,areas:state.areas,axes:state.axes,defaultAxes:state.defaultAxes})); }
   catch { status('Justeringen fungerar, men kunde inte sparas i webbläsaren.'); }
 }
 async function loadEditorDefaults(){
-  try{const defaults=await fetch('editor-defaults.json').then(r=>{if(!r.ok)throw Error();return r.json()});if(!state.boundary.length&&Array.isArray(defaults.boundary))state.boundary=defaults.boundary;if(defaults.guides)for(const [id,g] of Object.entries(defaults.guides))if(!state.guides[id])state.guides[id]=g;if(defaults.routes)for(const [id,r] of Object.entries(defaults.routes))if(!state.routes[id])state.routes[id]=r;}catch{}
+  try{const defaults=await fetch('editor-defaults.json').then(r=>{if(!r.ok)throw Error();return r.json()});if(!state.boundary.length&&Array.isArray(defaults.boundary))state.boundary=defaults.boundary;if(defaults.guides)for(const [id,g] of Object.entries(defaults.guides))if(!state.guides[id])state.guides[id]=g;if(defaults.routes)for(const [id,r] of Object.entries(defaults.routes))if(!state.routes[id])state.routes[id]=r;if(!state.areas.length&&Array.isArray(defaults.areas))state.areas=defaults.areas;if(defaults.axes)for(const [id,axis] of Object.entries(defaults.axes)){if(!state.axes[id])state.axes[id]=axis.map(p=>p.slice());if(!state.defaultAxes[id])state.defaultAxes[id]=axis.map(p=>p.slice())}}catch{}
 }
 function clearEntities(list){ list.forEach(e=>viewer.entities.remove(e)); list.length=0; }
 function addMarker(point,label,color='#fff'){
@@ -91,7 +92,8 @@ function updateGuideUi(){
   const id=state.view, isHole=id!=='overview';
   $('guide-editor').hidden=true; $('route-panel').hidden=true;$('markup-panel').hidden=!isHole;$('axis-panel').hidden=!isHole;
   if(!isHole)return;
-  $('markup-title').textContent=`Märk upp hål ${id}`;$('axis-title').textContent=`Längdaxel · hål ${id}`;$('finish-area').disabled=!(state.mode==='area'&&state.points.length>=3);$('undo-area').disabled=!(state.mode==='area'&&state.points.length);$('remove-area').disabled=!state.areas.some(a=>String(a.hole)===id);$('create-axis').textContent=state.axes[id]?'Återställ fyra punkter':'Skapa fyra punkter';
+  const hasAxis=!!state.axes[id],axisSaved=hasAxis&&JSON.stringify(state.axes[id])===JSON.stringify(state.defaultAxes[id]);
+  $('markup-title').textContent=`Märk upp hål ${id}`;$('axis-title').textContent=`Längdaxel · hål ${id}`;$('finish-area').disabled=!(state.mode==='area'&&state.points.length>=3);$('undo-area').disabled=!(state.mode==='area'&&state.points.length);$('remove-area').disabled=!state.areas.some(a=>String(a.hole)===id);$('create-axis').textContent=hasAxis?'Återställ fyra punkter':'Skapa fyra punkter';$('save-axis').disabled=!hasAxis||axisSaved;$('save-axis').textContent=axisSaved?'Standardaxel sparad ✓':'Spara standardaxel';
   $('area-label').placeholder=$('area-type').value==='tee'?'Exempel: Tee 40':$('area-type').value==='green'?`Exempel: Greenområde (Hål ${id})`:`Exempel: ${$('area-type').selectedOptions[0].text} hål ${id}`;
 }
 function updateExport(){ $('export').disabled=!(state.areas.length || Object.keys(state.axes).length); }
@@ -102,7 +104,7 @@ function drawAreasAndAxis(){
   clearEntities(areaEntities);clearEntities(axisEntities);if(state.view==='overview')return;
   for(const area of state.areas.filter(a=>String(a.hole)===state.view)){const [color,label]=areaStyle[area.type]||areaStyle.other,center=areaCenter(area.points),displayName=(area.name||`${label} (Hål ${area.hole})`).trim();areaEntities.push(viewer.entities.add({polygon:{hierarchy:C.Cartesian3.fromDegreesArray(area.points.flat()),material:C.Color.fromCssColorString(color).withAlpha(.34),outline:true,outlineColor:C.Color.fromCssColorString(color),heightReference:C.HeightReference.CLAMP_TO_GROUND,classificationType:C.ClassificationType.TERRAIN,zIndex:8}}));areaEntities.push(viewer.entities.add({position:C.Cartesian3.fromDegrees(...center),label:{text:displayName,font:'bold 13px sans-serif',fillColor:C.Color.fromCssColorString('#08251f'),showBackground:true,backgroundColor:C.Color.fromCssColorString(color).withAlpha(.92),backgroundPadding:new C.Cartesian2(8,5),heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY}}));}
   const axis=state.axes[state.view];if(!axis)return;axisEntities.push(viewer.entities.add({polyline:{positions:C.Cartesian3.fromDegreesArray(axis.flat()),width:4,material:new C.PolylineDashMaterialProperty({color:C.Color.fromCssColorString('#ffffff'),dashLength:18}),clampToGround:true}}));
-  let cumulative=0;axis.forEach((p,index)=>{if(index)cumulative+=new C.EllipsoidGeodesic(C.Cartographic.fromDegrees(...axis[index-1]),C.Cartographic.fromDegrees(...p)).surfaceDistance;const entity=viewer.entities.add({position:C.Cartesian3.fromDegrees(...p),point:{pixelSize:index===0?22:18,color:C.Color.fromCssColorString(index===0?'#f4d35e':'#ffffff'),outlineColor:C.Color.fromCssColorString('#0b2922'),outlineWidth:4,heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY},label:{text:index===0?'TEE':index===3?`${Math.round(cumulative)} m · GREEN`:`${Math.round(cumulative)} m`,font:'bold 12px sans-serif',fillColor:C.Color.fromCssColorString('#08251f'),showBackground:true,backgroundColor:C.Color.fromCssColorString(index===0?'#f4d35e':'#ffffff').withAlpha(.94),pixelOffset:new C.Cartesian2(0,-28),heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY}});entity.addProperty('axisHandle');entity.axisHandle={hole:state.view,index};axisEntities.push(entity)});viewer.scene.requestRender();
+  let cumulative=0;axis.forEach((p,index)=>{if(index)cumulative+=new C.EllipsoidGeodesic(C.Cartographic.fromDegrees(...axis[index-1]),C.Cartographic.fromDegrees(...p)).surfaceDistance;const entity=viewer.entities.add({position:C.Cartesian3.fromDegrees(...p),point:{pixelSize:index===0?22:18,color:C.Color.fromCssColorString(index===0?'#f4d35e':'#ffffff').withAlpha(.5),outlineColor:C.Color.fromCssColorString('#0b2922').withAlpha(.5),outlineWidth:4,eyeOffset:new C.Cartesian3(0,0,-100),heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY},label:{text:index===0?'TEE':index===3?`${Math.round(cumulative)} m · GREEN`:`${Math.round(cumulative)} m`,font:'bold 12px sans-serif',fillColor:C.Color.fromCssColorString('#08251f'),showBackground:true,backgroundColor:C.Color.fromCssColorString(index===0?'#f4d35e':'#ffffff').withAlpha(.5),pixelOffset:new C.Cartesian2(0,-28),eyeOffset:new C.Cartesian3(0,0,-100),heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY}});entity.addProperty('axisHandle');entity.axisHandle={hole:state.view,index};axisEntities.push(entity)});viewer.scene.requestRender();
 }
 function defaultAxis(){
   const guide=state.guides[state.view];let start,end;if(guide&&ensureGuideCorners(guide).length===4){const c=ensureGuideCorners(guide);start=[(c[2][0]+c[3][0])/2,(c[2][1]+c[3][1])/2];end=[(c[0][0]+c[1][0])/2,(c[0][1]+c[1][1])/2];}else{const offset=(+state.view-9)*.00012;start=[center[0]+offset,center[1]-.0012];end=[center[0]+offset,center[1]+.0012];}
@@ -173,7 +175,7 @@ function moveGuide(direction){
 function resizeGuide(g,newSize){const old=g.size||320,c=guideCenter(g),scale=newSize/old;g.corners=ensureGuideCorners(g).map(p=>[c[0]+(p[0]-c[0])*scale,c[1]+(p[1]-c[1])*scale]);g.size=newSize;g.lon=c[0];g.lat=c[1];}
 function rotateGuide(g,newRotation){const old=g.rotation||0,delta=(newRotation-old)*Math.PI/180,c=guideCenter(g),cos=Math.cos(delta),sin=Math.sin(delta),latCos=Math.cos(c[1]*Math.PI/180);g.corners=ensureGuideCorners(g).map(p=>{const x=(p[0]-c[0])*111320*latCos,y=(p[1]-c[1])*111320;return[c[0]+(x*cos+y*sin)/(111320*latCos),c[1]+(-x*sin+y*cos)/111320]});g.rotation=newRotation;g.lon=c[0];g.lat=c[1];}
 function exportWork(){
-  const payload={format:'gustavsvik-course-markup',version:3,exportedAt:new Date().toISOString(),crs:'EPSG:4326',boundary:state.boundary,areas:state.areas,axes:state.axes,source:'https://gustavsvik-flyover.gustavsund.chatgpt.site/'};
+  const payload={format:'gustavsvik-course-markup',version:3,exportedAt:new Date().toISOString(),crs:'EPSG:4326',boundary:state.boundary,areas:state.areas,axes:state.axes,defaultAxes:state.defaultAxes,source:'https://gustavsvik-flyover.gustavsund.chatgpt.site/'};
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'})); a.download=`gustavsvik-justeringar-${new Date().toISOString().slice(0,10)}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); status('Exportfilen är hämtad. Skicka den till mig när du är klar.');
 }
 
@@ -188,7 +190,7 @@ async function boot(){
   viewer.screenSpaceEventHandler.setInputAction(handleMapClick,C.ScreenSpaceEventType.LEFT_CLICK);
   viewer.screenSpaceEventHandler.setInputAction(event=>{const picked=viewer.scene.pick(event.position),handle=picked?.id?.axisHandle;if(!handle)return;draggingAxisPoint={...handle};viewer.scene.screenSpaceCameraController.enableInputs=false;status(handle.index===0?'Dra teeänden nära ett teeområde så snappar den fast.':`Dra axelpunkt ${handle.index+1} till rätt plats.`);},C.ScreenSpaceEventType.LEFT_DOWN);
   viewer.screenSpaceEventHandler.setInputAction(event=>{if(!draggingAxisPoint)return;const p=mapPoint(event.endPosition);if(!p)return;state.axes[draggingAxisPoint.hole][draggingAxisPoint.index]=p;drawAreasAndAxis();},C.ScreenSpaceEventType.MOUSE_MOVE);
-  viewer.screenSpaceEventHandler.setInputAction(()=>{if(!draggingAxisPoint)return;const drag=draggingAxisPoint,axis=state.axes[drag.hole];if(drag.index===0){const snap=nearestTeeSnap(axis[0],drag.hole);if(snap){axis[0]=snap;status(`Teeänden snappade till markerat teeområde för hål ${drag.hole}.`)}else status(`Axelpunkt 1 sparades. Markera ett teeområde för automatisk snapning.`)}else status(`Axelpunkt ${drag.index+1} sparades.`);persist();draggingAxisPoint=null;viewer.scene.screenSpaceCameraController.enableInputs=true;drawAreasAndAxis();},C.ScreenSpaceEventType.LEFT_UP);
+  viewer.screenSpaceEventHandler.setInputAction(()=>{if(!draggingAxisPoint)return;const drag=draggingAxisPoint,axis=state.axes[drag.hole];if(drag.index===0){const snap=nearestTeeSnap(axis[0],drag.hole);if(snap){axis[0]=snap;status(`Teeänden snappade till markerat teeområde för hål ${drag.hole}.`)}else status(`Axelpunkt 1 flyttades. Markera ett teeområde för automatisk snapning.`)}else status(`Axelpunkt ${drag.index+1} flyttades.`);persist();draggingAxisPoint=null;viewer.scene.screenSpaceCameraController.enableInputs=true;drawAreasAndAxis();updateGuideUi();},C.ScreenSpaceEventType.LEFT_UP);
 }
 
 for(let i=1;i<=18;i++){ const b=document.createElement('button');b.className='hole-button';b.disabled=true;b.dataset.view=String(i);b.innerHTML=`<span>${String(i).padStart(2,'0')}</span><small>Hål ${i}</small>`;b.onclick=()=>selectView(String(i));$('hole-grid').appendChild(b); }
@@ -198,7 +200,8 @@ $('finish-area').onclick=()=>{if(state.mode!=='area'||state.points.length<3)retu
 $('area-type').onchange=()=>{$('area-label').placeholder=$('area-type').value==='tee'?'Exempel: Tee 40':$('area-type').value==='green'?`Exempel: Greenområde (Hål ${state.view})`:`Exempel: ${$('area-type').selectedOptions[0].text} hål ${state.view}`;};
 $('undo-area').onclick=()=>{if(state.mode!=='area'||!state.points.length)return;state.points.pop();clearEntities(measurement);state.points.forEach((q,i)=>measurement.push(addMarker(q,String(i+1),'#f4d35e')));if(state.points.length>1)measurement.push(viewer.entities.add({polyline:{positions:C.Cartesian3.fromDegreesArray(state.points.flat()),width:3,material:C.Color.fromCssColorString('#f4d35e'),clampToGround:true}}));updateGuideUi();status('Senaste polygonpunkten togs bort.');};
 $('remove-area').onclick=()=>{for(let i=state.areas.length-1;i>=0;i--)if(String(state.areas[i].hole)===state.view){const removed=state.areas.splice(i,1)[0];persist();drawAreasAndAxis();redrawGuides();updateGuideUi();status(`${(areaStyle[removed.type]||areaStyle.other)[1]} togs bort från hål ${state.view}.`);break}};
-$('create-axis').onclick=()=>{state.axes[state.view]=defaultAxis();persist();drawAreasAndAxis();redrawGuides();updateGuideUi();status(`Fyra dragbara axelpunkter skapades för hål ${state.view}.`);};
+$('create-axis').onclick=()=>{state.axes[state.view]=defaultAxis();delete state.defaultAxes[state.view];persist();drawAreasAndAxis();redrawGuides();updateGuideUi();status(`Fyra dragbara axelpunkter skapades för hål ${state.view}. Justera dem och spara standardaxeln.`);};
+$('save-axis').onclick=()=>{const axis=state.axes[state.view];if(!axis)return;state.defaultAxes[state.view]=axis.map(p=>p.slice());persist();updateGuideUi();status(`Standardaxeln för hål ${state.view} sparades.`);};
 $('draw-boundary').onclick=()=>{if(state.mode==='boundary'){state.mode=null;updateBoundaryUi();status(state.boundary.length>=3?'Gränsen är sparad. Du kan fortsätta senare.':'Gränsen behöver minst tre punkter.');}else startMode('boundary','Klicka punkter längs vägen runt hela banan.');};
 $('undo-boundary').onclick=()=>{state.boundary.pop();persist();boundaryDraw();status('Senaste gränspunkten togs bort.');};
 $('clear-boundary').onclick=()=>{state.boundary=[];state.mode=null;persist();boundaryDraw();status('Banans yttergräns är rensad.');};
