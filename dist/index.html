@@ -5,13 +5,13 @@
   <title>Gustavsvik · Flyover</title><meta name="description" content="Märk upp Gustavsviks golfhål på en interaktiv 3D-karta.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230c2925'/%3E%3Cpath d='M11 25V7l14 5-14 5' stroke='%23d4ee88' stroke-width='2' fill='none'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.133.0/Build/Cesium/Widgets/widgets.css"><link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/cesium@1.133.0/Build/Cesium/Cesium.js" defer></script><script src="local-terrain.js" defer></script><script src="app.js?v=42" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/cesium@1.133.0/Build/Cesium/Cesium.js" defer></script><script src="local-terrain.js" defer></script><script src="app.js?v=43" defer></script>
 </head>
 <body class="user-mode">
   <header><div class="brand"><span class="mark">G<span>↗</span></span><div>GUSTAVSVIK<small>ÖREBRO CITY GOLF & COUNTRY CLUB</small></div></div><span class="badge">KARTVERKSTAD · PROTOTYP</span></header>
   <main>
     <aside>
-      <div class="eyebrow">GUSTAVSVIK 18 HÅL</div><h1 id="mode-title">Utforska banan.</h1><p class="intro" id="mode-intro">Välj ett hål, utforska längderna och växla mellan hålvy och greenvy.</p><div class="mode-switch" role="group" aria-label="Välj gränssnitt"><button id="user-mode">Spelarläge</button><button id="builder-mode">Kartbyggare</button></div>
+      <div class="eyebrow mode-heading">GUSTAVSVIK 18 HÅL</div><h1 id="mode-title">Utforska banan.</h1><p class="intro" id="mode-intro">Välj ett hål, utforska längderna och växla mellan överblick och greenvy.</p>
       <section class="editor-block boundary-block builder-only">
         <div class="section-heading"><span class="step">1</span><div><h2>Banans yttergräns</h2><small id="boundary-count">Ingen gräns markerad</small></div></div>
         <p>Öppna redigeringen och dra de gula punkterna. Klicka på kartan för att lägga till fler punkter.</p>
@@ -20,7 +20,7 @@
       <section class="editor-block guide-block">
         <div class="section-heading"><span class="step">1</span><div><h2>Välj hål</h2><small>Redigera ett hål i taget</small></div></div>
         <nav id="hole-grid" class="hole-grid" aria-label="Välj hål"></nav>
-        <div id="user-hole-controls" class="user-hole-controls" hidden><strong id="user-hole-title">Hål 1</strong><div class="button-row"><button id="saved-view" class="primary">Sparad hålvy</button><button id="green-view">Greenvy</button></div><p>Dra i längdaxelns punkter för att undersöka avstånd från tee.</p></div>
+        <div id="user-hole-controls" class="user-hole-controls" hidden><strong id="user-hole-title">Hål 1</strong><div class="button-row"><button id="saved-view" class="primary">Överblick</button><button id="green-view">Greenvy</button></div><p>Dra i längdaxelns punkter för att undersöka avstånd från tee.</p></div>
         <div id="guide-editor" hidden>
           <div class="selected-hole"><strong id="guide-title">Hål 1</strong><span>70 % opacitet</span></div><p class="corner-help">Dra mittenhandtaget för att flytta hela guiden. Dra de fyra gula hörnpunkterna för att ändra formen.</p>
           <button id="place-guide" class="wide">Placera banguiden på kartan</button>
@@ -51,6 +51,7 @@
       <div class="map-tools"><button id="overview" title="Visa hela banan">Hela banan</button><button id="top" title="Visa banan rakt uppifrån">Ovanifrån</button><button id="reset" title="Återställ kameran">Återställ</button><button id="relief" aria-pressed="false">Visa terräng</button><button id="measure" aria-pressed="false">Mät avstånd</button><label class="toggle"><input type="checkbox" id="outlines"> Bankonturer</label></div>
       <div class="flight-controls"><button id="play" class="primary" disabled>▶ Flyg över banan</button><label for="progress">Flygning</label><input id="progress" type="range" min="0" max="1000" value="0" aria-label="Position i flygningen"><span id="time">0:00 / 0:24</span></div>
       <p class="map-hint" id="hint">Vänsterdrag: flytta · Högerdrag: rotera · Scroll: zooma</p><div id="error" hidden role="alert"></div>
+      <button id="settings-toggle" class="settings-toggle" aria-label="Öppna kartbyggaren" title="Kartbyggare · låst">⚙</button>
     </section>
   </main>
 </body>
