@@ -23,7 +23,7 @@ try {
 
 let C, viewer, localTerrain, outlineSource, orthophotoLayer, orthophotoBounds, courseMaskEntity;
 let routeEntities=[], distanceEntities=[], measurement=[], boundaryEntities=[], guidePrimitives=[], guideHandles=[], areaEntities=[], axisEntities=[];
-let draggingAxisPoint=null;
+let draggingAxisPoint=null, axisDragEntity=null;
 let last=0;
 
 function status(message){ $('status').textContent=message; }
@@ -105,20 +105,21 @@ function areaLabelPosition(area){
   return{position:north,pixelOffset:new C.Cartesian2(0,-12),verticalOrigin:C.VerticalOrigin.BOTTOM};
 }
 function drawAreasAndAxis(){
-  clearEntities(areaEntities);clearEntities(axisEntities);if(state.view==='overview')return;
+  clearEntities(areaEntities);clearEntities(axisEntities);if(axisDragEntity){viewer.entities.remove(axisDragEntity);axisDragEntity=null}if(state.view==='overview')return;
   for(const area of state.areas.filter(a=>String(a.hole)===state.view)){const [color,label]=areaStyle[area.type]||areaStyle.other,labelPlacement=areaLabelPosition(area),displayName=(area.name||`${label} (Hål ${area.hole})`).trim();areaEntities.push(viewer.entities.add({polygon:{hierarchy:C.Cartesian3.fromDegreesArray(area.points.flat()),material:C.Color.fromCssColorString(color).withAlpha(.34),outline:true,outlineColor:C.Color.fromCssColorString(color),heightReference:C.HeightReference.CLAMP_TO_GROUND,classificationType:C.ClassificationType.TERRAIN,zIndex:8}}));areaEntities.push(viewer.entities.add({position:C.Cartesian3.fromDegrees(...labelPlacement.position),label:{text:displayName,font:'bold 13px sans-serif',fillColor:C.Color.fromCssColorString('#08251f'),showBackground:true,backgroundColor:C.Color.fromCssColorString(color).withAlpha(.92),backgroundPadding:new C.Cartesian2(8,5),pixelOffset:labelPlacement.pixelOffset,verticalOrigin:labelPlacement.verticalOrigin,eyeOffset:new C.Cartesian3(0,0,100),heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY}}));}
   const axis=state.axes[state.view];if(!axis)return;axisEntities.push(viewer.entities.add({polyline:{positions:C.Cartesian3.fromDegreesArray(axis.flat()),width:4,material:new C.PolylineDashMaterialProperty({color:C.Color.fromCssColorString('#ffffff'),dashLength:18}),clampToGround:true}}));
   let cumulative=0;axis.forEach((p,index)=>{if(index)cumulative+=new C.EllipsoidGeodesic(C.Cartographic.fromDegrees(...axis[index-1]),C.Cartographic.fromDegrees(...p)).surfaceDistance;const entity=viewer.entities.add({position:C.Cartesian3.fromDegrees(...p),point:{pixelSize:index===0?22:18,color:C.Color.fromCssColorString(index===0?'#f4d35e':'#ffffff').withAlpha(.5),outlineColor:C.Color.fromCssColorString('#0b2922').withAlpha(.5),outlineWidth:4,eyeOffset:new C.Cartesian3(0,0,-20),heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY},label:{text:index===0?'TEE':index===3?`${Math.round(cumulative)} m · GREEN`:`${Math.round(cumulative)} m`,font:'bold 12px sans-serif',fillColor:C.Color.fromCssColorString('#08251f'),showBackground:true,backgroundColor:C.Color.fromCssColorString(index===0?'#f4d35e':'#ffffff').withAlpha(.5),pixelOffset:new C.Cartesian2(0,-28),eyeOffset:new C.Cartesian3(0,0,-20),heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY}});entity.addProperty('axisHandle');entity.axisHandle={hole:state.view,index};axisEntities.push(entity)});viewer.scene.requestRender();
 }
 function updateAxisWhileDragging(){
-  const axis=state.axes[state.view],line=axisEntities.find(entity=>entity.polyline);if(!axis||!line)return;
-  line.polyline.positions=C.Cartesian3.fromDegreesArray(axis.flat());let cumulative=0;
+  const axis=state.axes[state.view];if(!axis)return;
+  if(axisDragEntity)axisDragEntity.polyline.positions=axis.map(p=>C.Cartesian3.fromDegrees(p[0],p[1],(localTerrain?.sample(...p)??0)+6));let cumulative=0;
   for(const entity of axisEntities.filter(entity=>entity.axisHandle).sort((a,b)=>a.axisHandle.index-b.axisHandle.index)){const index=entity.axisHandle.index;if(index)cumulative+=new C.EllipsoidGeodesic(C.Cartographic.fromDegrees(...axis[index-1]),C.Cartographic.fromDegrees(...axis[index])).surfaceDistance;entity.position=C.Cartesian3.fromDegrees(...axis[index]);entity.label.text=index===0?'TEE':index===3?`${Math.round(cumulative)} m · GREEN`:`${Math.round(cumulative)} m`;}
   viewer.scene.requestRender();
 }
 function setAxisDragStyle(active){
-  const line=axisEntities.find(entity=>entity.polyline);if(!line)return;
-  line.polyline.width=active?7:4;line.polyline.material=active?C.Color.fromCssColorString('#d4ee88'):new C.PolylineDashMaterialProperty({color:C.Color.WHITE,dashLength:18});viewer.scene.requestRender();
+  const line=axisEntities.find(entity=>entity.polyline),axis=state.axes[state.view];if(!line||!axis)return;
+  line.show=!active;if(axisDragEntity){viewer.entities.remove(axisDragEntity);axisDragEntity=null}
+  if(active)axisDragEntity=viewer.entities.add({polyline:{positions:axis.map(p=>C.Cartesian3.fromDegrees(p[0],p[1],(localTerrain?.sample(...p)??0)+6)),width:7,material:C.Color.fromCssColorString('#d4ee88'),arcType:C.ArcType.NONE}});viewer.scene.requestRender();
 }
 function defaultAxis(){
   const guide=state.guides[state.view];let start,end;if(guide&&ensureGuideCorners(guide).length===4){const c=ensureGuideCorners(guide);start=[(c[2][0]+c[3][0])/2,(c[2][1]+c[3][1])/2];end=[(c[0][0]+c[1][0])/2,(c[0][1]+c[1][1])/2];}else{const offset=(+state.view-9)*.00012;start=[center[0]+offset,center[1]-.0012];end=[center[0]+offset,center[1]+.0012];}
