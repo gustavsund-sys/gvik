@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const store = new URLSearchParams(location.search).has('test') ? sessionStorage : localStorage;
 const center = [15.2105, 59.2478];
 const validPoint = p => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite) && p[0] > 15.18 && p[0] < 15.24 && p[1] > 59.23 && p[1] < 59.26;
-const state = {view:'overview', playing:false, progress:0, ready:false, mode:null, points:[], routes:{}, boundary:[], guides:{}, showAll:false, terrain:false, localTerrain:false, imagery:false};
+const state = {view:'overview', playing:false, progress:0, ready:false, mode:null, points:[], routes:{}, boundary:[], guides:{}, terrain:false, localTerrain:false, imagery:false};
 
 try {
   const saved = JSON.parse(store.getItem('gustavsvik-editor-v2') || '{}');
@@ -19,7 +19,7 @@ try {
 } catch {}
 
 let C, viewer, localTerrain, outlineSource, orthophotoLayer;
-let routeEntities=[], measurement=[], boundaryEntities=[], guidePrimitives=[], guideHandles=[];
+let routeEntities=[], distanceEntities=[], measurement=[], boundaryEntities=[], guidePrimitives=[], guideHandles=[];
 let draggingGuideCorner=null;
 let last=0;
 
@@ -27,6 +27,9 @@ function status(message){ $('status').textContent=message; }
 function persist(){
   try { store.setItem('gustavsvik-editor-v2', JSON.stringify({boundary:state.boundary,guides:state.guides,routes:state.routes})); }
   catch { status('Justeringen fungerar, men kunde inte sparas i webbläsaren.'); }
+}
+async function loadEditorDefaults(){
+  try{const defaults=await fetch('editor-defaults.json').then(r=>{if(!r.ok)throw Error();return r.json()});if(!state.boundary.length&&Array.isArray(defaults.boundary))state.boundary=defaults.boundary;if(defaults.guides)for(const [id,g] of Object.entries(defaults.guides))if(!state.guides[id])state.guides[id]=g;if(defaults.routes)for(const [id,r] of Object.entries(defaults.routes))if(!state.routes[id])state.routes[id]=r;}catch{}
 }
 function clearEntities(list){ list.forEach(e=>viewer.entities.remove(e)); list.length=0; }
 function addMarker(point,label,color='#fff'){
@@ -73,7 +76,7 @@ function guidePrimitive(id,g){
 }
 function redrawGuides(){
   guidePrimitives.forEach(p=>viewer.scene.primitives.remove(p));guidePrimitives=[];clearEntities(guideHandles);
-  for(const [id,g] of Object.entries(state.guides)) if(state.showAll||state.view===id) guidePrimitives.push(guidePrimitive(id,g));
+  for(const [id,g] of Object.entries(state.guides)) if(state.view===id) guidePrimitives.push(guidePrimitive(id,g));
   const selected=state.guides[state.view];
   if(selected){
     ensureGuideCorners(selected).forEach((p,index)=>{const e=viewer.entities.add({position:C.Cartesian3.fromDegrees(...p),point:{pixelSize:17,color:C.Color.fromCssColorString('#ffcf66'),outlineColor:C.Color.WHITE,outlineWidth:3,heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY}});e.addProperty('guideCorner');e.guideCorner={id:state.view,index};guideHandles.push(e)});
@@ -89,15 +92,21 @@ function updateGuideUi(){
   $('guide-title').textContent=`Hål ${id}`; $('route-hole').textContent=id;
   $('place-guide').hidden=!!g; $('guide-controls').hidden=!g;
   if(g){ $('guide-size').value=g.size; $('size-value').value=`${Math.round(g.size)} m`; $('guide-rotation').value=g.rotation; $('rotation-value').value=`${Math.round(g.rotation)}°`; }
-  $('route-help').textContent=state.routes[id]?'Flygvägen är sparad. Du kan markera om den vid behov.':'Klicka ut tee, en punkt längs hålet och green.';
+  $('route-help').textContent=state.routes[id]?'Flygvägen är sparad. 3D-stolpar visar återstående avstånd till green i steg om 50 meter.':'Markera tee, en punkt längs hålet och green för att skapa 3D-avståndsstolpar.';
   $('edit-route').textContent=state.routes[id]?'Markera om flygvägen':'Markera tee → green';
 }
 function updateExport(){ $('export').disabled=!(state.boundary.length || Object.keys(state.guides).length || Object.keys(state.routes).length); }
 
 function routeDraw(){
-  clearEntities(routeEntities); const pts=state.routes[state.view]; if(!pts || !pts.every(validPoint))return;
+  clearEntities(routeEntities); clearEntities(distanceEntities); const pts=state.routes[state.view]; if(!pts || !pts.every(validPoint))return;
   pts.forEach((p,i)=>routeEntities.push(addMarker(p,['Tee','Flygpunkt','Green'][i],'#d4ee88')));
   routeEntities.push(viewer.entities.add({polyline:{positions:C.Cartesian3.fromDegreesArray(pts.flat()),width:3,material:C.Color.fromCssColorString('#d4ee88'),clampToGround:true}}));
+  drawDistancePosts(pts);
+}
+function drawDistancePosts(route){
+  const reversed=[...route].reverse(),segments=[];let total=0;
+  for(let i=0;i<reversed.length-1;i++){const geodesic=new C.EllipsoidGeodesic(C.Cartographic.fromDegrees(...reversed[i]),C.Cartographic.fromDegrees(...reversed[i+1]));segments.push({geodesic,length:geodesic.surfaceDistance});total+=geodesic.surfaceDistance;}
+  for(let metres=50;metres<=total+2;metres+=50){let remaining=metres,point=null;for(const segment of segments){if(remaining<=segment.length){const c=segment.geodesic.interpolateUsingSurfaceDistance(remaining);point=[C.Math.toDegrees(c.longitude),C.Math.toDegrees(c.latitude)];break}remaining-=segment.length}if(!point)continue;const ground=localTerrain?.sample(...point)??0,base=C.Cartesian3.fromDegrees(point[0],point[1],ground+5),top=C.Cartesian3.fromDegrees(point[0],point[1],ground+11);distanceEntities.push(viewer.entities.add({position:base,cylinder:{length:10,topRadius:.16,bottomRadius:.28,material:C.Color.fromCssColorString('#173b31'),outline:true,outlineColor:C.Color.WHITE},label:{text:`${metres} m`,font:'bold 22px sans-serif',fillColor:C.Color.fromCssColorString('#10251f'),outlineColor:C.Color.WHITE,outlineWidth:5,style:C.LabelStyle.FILL_AND_OUTLINE,showBackground:true,backgroundColor:C.Color.fromCssColorString('#d4ee88').withAlpha(.94),backgroundPadding:new C.Cartesian2(9,6),pixelOffset:new C.Cartesian2(0,-32),heightReference:C.HeightReference.NONE,disableDepthTestDistance:Number.POSITIVE_INFINITY}}));distanceEntities.push(viewer.entities.add({polyline:{positions:[base,top],width:2,material:C.Color.WHITE}}));}
 }
 function stop(){ state.playing=false; $('play').textContent=state.view==='overview'?'▶ Flyg över banan':'▶ Flyg längs hålet'; }
 function updateFlight(){ $('play').disabled=!state.ready||(state.view!=='overview'&&!state.routes[state.view]); $('progress').disabled=$('play').disabled; }
@@ -156,7 +165,7 @@ function exportWork(){
 
 async function boot(){
   if(!window.Cesium)throw Error('3D-motorn kunde inte laddas. Kontrollera internetanslutningen och ladda om.'); C=window.Cesium; C.Ion.defaultAccessToken='';
-  viewer=new C.Viewer('map',{baseLayer:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,navigationHelpButton:false,timeline:false,animation:false,fullscreenButton:false,infoBox:false,selectionIndicator:false,requestRenderMode:true,maximumRenderTimeChange:Infinity});
+  await loadEditorDefaults(); viewer=new C.Viewer('map',{baseLayer:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,navigationHelpButton:false,timeline:false,animation:false,fullscreenButton:false,infoBox:false,selectionIndicator:false,requestRenderMode:true,maximumRenderTimeChange:Infinity});
   viewer.resolutionScale=Math.min(devicePixelRatio,1.5)/devicePixelRatio; viewer.scene.globe.baseColor=C.Color.fromCssColorString('#254739'); viewer.scene.skyAtmosphere.show=false; viewer.scene.globe.enableLighting=false; viewer.scene.screenSpaceCameraController.minimumZoomDistance=70; reset(); await loadOrthophoto();
   try { localTerrain=await GustavsvikTerrain.create(C); viewer.terrainProvider=localTerrain.provider; state.terrain=true;state.localTerrain=true;$('terrain-source').textContent='Lantmäteriet · 1 m källdata';viewer.terrainProvider.errorEvent.addEventListener(e=>{console.error('Terrain:',e.message);status('Höjddata kunde inte laddas fullt ut.');});reset(); }
   catch(e){console.error(e);$('terrain-source').textContent='Höjdmodellen kunde inte laddas';status('Din höjdmodell saknas i vyn. Plan mark visas.');}
@@ -179,7 +188,7 @@ $('remove-guide').onclick=()=>{delete state.guides[state.view];persist();redrawG
 $('guide-size').oninput=e=>{const g=state.guides[state.view];if(!g)return;resizeGuide(g,+e.target.value);$('size-value').value=`${g.size} m`;persist();redrawGuides();};
 $('guide-rotation').oninput=e=>{const g=state.guides[state.view];if(!g)return;rotateGuide(g,+e.target.value);$('rotation-value').value=`${g.rotation}°`;persist();redrawGuides();};
 document.querySelectorAll('[data-move]').forEach(b=>b.onclick=()=>moveGuide(b.dataset.move));
-$('show-all-guides').onchange=e=>{state.showAll=e.target.checked;redrawGuides();}; $('edit-route').onclick=()=>startMode('route','Klicka först på tee, sedan en flygpunkt och sist på green.'); $('export').onclick=exportWork;
+$('edit-route').onclick=()=>startMode('route','Klicka först på tee, sedan en flygpunkt och sist på green. Avståndsstolpar skapas automatiskt.'); $('export').onclick=exportWork;
 $('measure').onclick=()=>state.mode==='measure'?(state.mode=null,$('measure').setAttribute('aria-pressed','false'),status('Mätningen avbröts.')):startMode('measure','Klicka på två punkter för att mäta kartavståndet.');
 $('outlines').onchange=e=>{if(outlineSource){outlineSource.show=e.target.checked;viewer.scene.requestRender();}};
 $('relief').onclick=()=>{const show=$('relief').getAttribute('aria-pressed')!=='true';$('relief').setAttribute('aria-pressed',String(show));$('relief').textContent=show?'Visa flygbild':'Visa terräng';for(let i=0;i<viewer.imageryLayers.length;i++)viewer.imageryLayers.get(i).alpha=show?0:1;viewer.scene.globe.material=show?C.Material.fromType('ElevationContour',{color:C.Color.fromCssColorString('#183e32'),spacing:2,width:1.5}):undefined;viewer.scene.globe.baseColor=C.Color.fromCssColorString('#91b399');viewer.scene.requestRender();};
