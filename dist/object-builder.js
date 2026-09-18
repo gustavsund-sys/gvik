@@ -1,7 +1,7 @@
 (function(){
-  const DESKTOP_RENDER_LIMIT=2500,MOBILE_RENDER_LIMIT=650;
+  const MAX_RENDERED_OBJECTS=2500;
   const isMobileDevice=()=>{const nav=globalThis.navigator||{},touch=nav.maxTouchPoints>0||window.matchMedia?.('(pointer:coarse)').matches;return /iPhone|iPad|iPod|Android/i.test(nav.userAgent||'')||touch};
-  const renderLimit=()=>isMobileDevice()?MOBILE_RENDER_LIMIT:DESKTOP_RENDER_LIMIT;
+  const renderLimit=()=>MAX_RENDERED_OBJECTS;
   const registry={
     deciduous:{label:'Lövträd',models:['models/tree_deciduous_01.glb','models/tree_deciduous_02.glb','models/tree_deciduous_03.glb'],baseHeight:9,heightRange:[7,12],far:2200,minPixels:2,defaultColor:'#2f7f24'},
     conifer:{label:'Barrträd',models:['models/tree_conifer_flo_bit_01.glb'],modelScale:.1845,baseHeight:10,heightRange:[8,14],far:2400,minPixels:2,defaultColor:'#17582b'},
