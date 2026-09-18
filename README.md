@@ -25,4 +25,4 @@ Projekt: `gvik-3d311`. Databasregion: `europe-north1`.
 firebase deploy --only firestore --project gvik-3d311
 ```
 
-Firestore är publik för läsning av `courses/gustavsvik`. Klientskrivning är blockerad. Kartbyggarens lokala lösenord är inte en säker autentiseringsmetod för databasåtkomst.
+Firestore är publik för läsning av `courses/gustavsvik`. Skrivning kräver Firebase Authentication med e-post/lösenord och den uttryckligen tillåtna byggarens UID.

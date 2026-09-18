@@ -3,7 +3,15 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /courses/gustavsvik {
       allow read: if true;
-      allow write: if false;
+      allow write: if request.auth != null
+        && request.auth.uid == 'hJkbDc8jPkRD8xPmwQgzEJSlBwa2'
+        && request.resource.data.keys().hasOnly([
+          'configJson', 'schemaVersion', 'sourceRevision', 'updatedAt', 'updatedBy'
+        ])
+        && request.resource.data.configJson is string
+        && request.resource.data.configJson.size() < 900000
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.updatedBy == request.auth.uid;
     }
     match /{document=**} {
       allow read, write: if false;
