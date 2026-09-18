@@ -5,14 +5,28 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1] / 'dist' / 'models'
 ROOT.mkdir(parents=True, exist_ok=True)
 
-def cylinder(radius=.08, y0=0, y1=.55, segments=8):
-    p=[]; n=[]; idx=[]
-    for y in (y0,y1):
+def normalize(v):
+    length=math.sqrt(sum(x*x for x in v)) or 1
+    return tuple(x/length for x in v)
+
+def cross(a,b):
+    return (a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0])
+
+def branch(start=(0,0,0),end=(0,1,0),radius0=.08,radius1=.04,segments=7):
+    """Low-poly tapered branch aligned between two arbitrary points."""
+    axis=normalize(tuple(end[i]-start[i] for i in range(3)))
+    helper=(0,1,0) if abs(axis[1])<.88 else (1,0,0)
+    side=normalize(cross(axis,helper)); up=normalize(cross(side,axis)); p=[]; n=[]; idx=[]
+    for center,radius in ((start,radius0),(end,radius1)):
         for i in range(segments):
-            a=2*math.pi*i/segments; p.append((radius*math.cos(a),y,radius*math.sin(a))); n.append((math.cos(a),0,math.sin(a)))
+            angle=2*math.pi*i/segments; radial=tuple(math.cos(angle)*side[j]+math.sin(angle)*up[j] for j in range(3))
+            p.append(tuple(center[j]+radius*radial[j] for j in range(3)));n.append(radial)
     for i in range(segments):
-        j=(i+1)%segments; idx += [i,j,segments+j,i,segments+j,segments+i]
+        j=(i+1)%segments;idx += [i,j,segments+j,i,segments+j,segments+i]
     return p,n,idx
+
+def cylinder(radius=.08, y0=0, y1=.55, segments=8):
+    return branch((0,y0,0),(0,y1,0),radius,radius,segments)
 
 def cone(radius=.28, y0=.28, y1=1, segments=9):
     p=[]; n=[]; idx=[]; slope=radius/max(.001,y1-y0)
@@ -23,13 +37,13 @@ def cone(radius=.28, y0=.28, y1=1, segments=9):
     for i in range(segments): idx += [i,(i+1)%segments,tip]
     return p,n,idx
 
-def ellipsoid(rx=.32, ry=.28, rz=.3, cy=.72, rings=4, segments=9):
+def ellipsoid(rx=.32, ry=.28, rz=.3, cy=.72, rings=4, segments=9, cx=0, cz=0):
     p=[]; n=[]; idx=[]
     for r in range(rings+1):
         v=r/rings; phi=-math.pi/2+math.pi*v
         for i in range(segments):
             a=2*math.pi*i/segments; x=rx*math.cos(phi)*math.cos(a); y=ry*math.sin(phi); z=rz*math.cos(phi)*math.sin(a)
-            p.append((x,cy+y,z)); nx=x/(rx*rx); ny=y/(ry*ry); nz=z/(rz*rz); length=math.sqrt(nx*nx+ny*ny+nz*nz) or 1
+            p.append((cx+x,cy+y,cz+z)); nx=x/(rx*rx); ny=y/(ry*ry); nz=z/(rz*rz); length=math.sqrt(nx*nx+ny*ny+nz*nz) or 1
             n.append((nx/length,ny/length,nz/length))
     for r in range(rings):
         for i in range(segments):
@@ -63,15 +77,46 @@ def write_glb(name, primitives, colors):
     out=struct.pack('<4sII',b'glTF',2,total)+struct.pack('<I4s',len(raw),b'JSON')+raw+struct.pack('<I4s',len(blob),b'BIN\0')+blob
     (ROOT/name).write_bytes(out)
 
-trunk=(.30,.16,.07)
-for i,(rx,ry,rz,color) in enumerate([(.30,.28,.28,(.18,.48,.12)),(.36,.25,.27,(.27,.58,.15)),(.29,.34,.33,(.12,.41,.10))],1):
-    write_glb(f'tree_deciduous_0{i}.glb',[cylinder(.055,0,.58),ellipsoid(rx,ry,rz,.72)], [trunk,color])
-for i,(layers,color) in enumerate([(2,(.08,.32,.14)),(3,(.10,.39,.18)),(3,(.06,.27,.12))],1):
-    shapes=[cylinder(.045,0,.72)]; colors=[trunk]
-    for layer in range(layers):
-        y0=.20+layer*.18; shapes.append(cone(.30-layer*.055,y0,.78+layer*.09)); colors.append(color)
-    write_glb(f'tree_conifer_0{i}.glb',shapes,colors)
-for i,(rx,ry,rz,color) in enumerate([(.42,.28,.38,(.20,.50,.13)),(.50,.23,.32,(.29,.56,.16))],1):
-    write_glb(f'shrub_0{i}.glb',[ellipsoid(rx,ry,rz,.30,3,8)],[color])
+trunk=(.30,.16,.07);branch_color=(.34,.19,.08)
+deciduous_variants=[
+    ([0.05,1.05,0.19,0.82],[(.18,.49,.12),(.24,.58,.15),(.13,.40,.09)]),
+    ([0.42,1.45,0.38,1.27],[(.30,.58,.13),(.18,.48,.10),(.36,.64,.18)]),
+    ([0.82,1.95,0.67,1.72],[(.10,.39,.08),(.18,.47,.09),(.23,.54,.12)])
+]
+for variant,(angles,greens) in enumerate(deciduous_variants,1):
+    lean=(variant-2)*.025;shapes=[branch((0,0,0),(lean,.64,0),.065,.043,8)];colors=[trunk]
+    tips=[]
+    for index,angle in enumerate(angles):
+        level=.38+(index%2)*.13;length=.34+(index%3)*.045;start=(lean*level/.64,level,0);tip=(start[0]+math.cos(angle)*length,level+.23+(index%2)*.05,math.sin(angle)*length)
+        fork=(tip[0]*.56,tip[1]-.09,tip[2]*.56);shapes.append(branch(start,fork,.034,.021,7));colors.append(branch_color);shapes.append(branch(fork,tip,.022,.009,6));colors.append(branch_color);tips.append(tip)
+        twig=(tip[0]+math.cos(angle+.75)*.14,tip[1]+.13,tip[2]+math.sin(angle+.75)*.14);shapes.append(branch(fork,twig,.016,.006,6));colors.append(branch_color);tips.append(twig)
+    tips += [(lean,.96,0),(-.10,.82,.08),(.12,.80,-.08)]
+    for index,tip in enumerate(tips):
+        green=greens[index%len(greens)];rx=.17+(index%3)*.018;ry=.14+(index%2)*.025;rz=.16+((index+1)%3)*.015
+        shapes.append(ellipsoid(rx,ry,rz,tip[1],4,9,tip[0],tip[2]));colors.append(green)
+    write_glb(f'tree_deciduous_0{variant}.glb',shapes,colors)
+
+conifer_greens=[(.07,.29,.12),(.10,.37,.16),(.055,.245,.10)]
+for variant,green in enumerate(conifer_greens,1):
+    lean=(variant-2)*.018;shapes=[branch((0,0,0),(lean,.96,0),.055,.014,8)];colors=[trunk]
+    levels=5+(variant%2)
+    for level in range(levels):
+        y=.24+level*.125;radius=.34-level*.045;branches=5+(level+variant)%2
+        for arm in range(branches):
+            angle=2*math.pi*arm/branches+variant*.31+level*.18;start=(lean*y/.96,y,0);tip=(start[0]+math.cos(angle)*radius,y+.035+level*.012,math.sin(angle)*radius)
+            shapes.append(branch(start,tip,.018,.005,6));colors.append(branch_color)
+            cluster=(tip[0]*.78,tip[1]+.08,tip[2]*.78);shapes.append(ellipsoid(.075,.16,.075,cluster[1],3,7,cluster[0],cluster[2]));colors.append(green)
+    for y,scale in ((.72,.16),(.83,.125),(.92,.085)):
+        shapes.append(cone(scale,y-.10,y+.09,8));colors.append(green)
+    write_glb(f'tree_conifer_0{variant}.glb',shapes,colors)
+
+shrub_variants=[((.20,.50,.13),0),((.29,.56,.16),.42)]
+for variant,(green,phase) in enumerate(shrub_variants,1):
+    shapes=[];colors=[]
+    for index in range(7):
+        angle=phase+index*2.399;distance=.10+.055*(index%3);cx=math.cos(angle)*distance;cz=math.sin(angle)*distance;cy=.22+.045*(index%2)
+        shapes.append(branch((0,.02,0),(cx,cy,cz),.018,.005,6));colors.append(branch_color)
+        shade=tuple(max(0,min(1,c+(.035 if index%2 else -.025))) for c in green);shapes.append(ellipsoid(.18,.15,.17,cy+.06,3,8,cx,cz));colors.append(shade)
+    write_glb(f'shrub_0{variant}.glb',shapes,colors)
 
 print(f'Generated {len(list(ROOT.glob("*.glb")))} GLB models in {ROOT}')
