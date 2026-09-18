@@ -96,18 +96,29 @@ for variant,(angles,greens) in enumerate(deciduous_variants,1):
         shapes.append(ellipsoid(rx,ry,rz,tip[1],4,9,tip[0],tip[2]));colors.append(green)
     write_glb(f'tree_deciduous_0{variant}.glb',shapes,colors)
 
-conifer_greens=[(.07,.29,.12),(.10,.37,.16),(.055,.245,.10)]
-for variant,green in enumerate(conifer_greens,1):
-    lean=(variant-2)*.018;shapes=[branch((0,0,0),(lean,.96,0),.055,.014,8)];colors=[trunk]
-    levels=5+(variant%2)
-    for level in range(levels):
-        y=.24+level*.125;radius=.34-level*.045;branches=5+(level+variant)%2
-        for arm in range(branches):
-            angle=2*math.pi*arm/branches+variant*.31+level*.18;start=(lean*y/.96,y,0);tip=(start[0]+math.cos(angle)*radius,y+.035+level*.012,math.sin(angle)*radius)
-            shapes.append(branch(start,tip,.018,.005,6));colors.append(branch_color)
-            cluster=(tip[0]*.78,tip[1]+.08,tip[2]*.78);shapes.append(ellipsoid(.075,.16,.075,cluster[1],3,7,cluster[0],cluster[2]));colors.append(green)
-    for y,scale in ((.72,.16),(.83,.125),(.92,.085)):
-        shapes.append(cone(scale,y-.10,y+.09,8));colors.append(green)
+conifer_variants=[
+    # Open Scots-pine-like crown, long irregular branches and visible upper trunk.
+    {'green':(.08,.31,.14),'levels':4,'arms':5,'base':.42,'step':.14,'spread':.35,'droop':.015,'phase':.15},
+    # Airy spruce with separated branch pads instead of one continuous cone.
+    {'green':(.10,.38,.17),'levels':5,'arms':5,'base':.29,'step':.13,'spread':.34,'droop':-.025,'phase':.46},
+    # Narrow younger pine with asymmetric whorls.
+    {'green':(.055,.26,.11),'levels':5,'arms':4,'base':.32,'step':.135,'spread':.29,'droop':.025,'phase':.82}
+]
+for variant,settings in enumerate(conifer_variants,1):
+    green=settings['green'];lean=(variant-2)*.018;shapes=[branch((0,0,0),(lean,1.02,0),.055,.011,8)];colors=[trunk]
+    for level in range(settings['levels']):
+        y=settings['base']+level*settings['step'];radius=settings['spread']-level*.045;arms=settings['arms']+(1 if variant==2 and level==0 else 0)
+        for arm in range(arms):
+            angle=2*math.pi*arm/arms+settings['phase']+level*.29;start=(lean*y/1.02,y,0);tip=(start[0]+math.cos(angle)*radius,y+settings['droop']+level*.008,math.sin(angle)*radius)
+            shapes.append(branch(start,tip,.015,.0035,6));colors.append(branch_color)
+            # Small separated needle pads expose the branch and create an irregular silhouette.
+            for pad,fraction in enumerate((.48,.78,1.0)):
+                if variant==1 and level==0 and pad==0 and arm%2:continue
+                cx=start[0]+(tip[0]-start[0])*fraction;cz=start[2]+(tip[2]-start[2])*fraction;cy=start[1]+(tip[1]-start[1])*fraction+.035+(pad%2)*.018
+                width=.055+(1-fraction)*.025;height=.075+(level%2)*.012
+                shade=tuple(max(0,min(1,c+(.025 if (arm+pad)%2 else -.018))) for c in green)
+                shapes.append(ellipsoid(width,height,width*.78,cy,3,7,cx,cz));colors.append(shade)
+    shapes.append(ellipsoid(.065,.16,.065,.93,4,8,lean,0));colors.append(green)
     write_glb(f'tree_conifer_0{variant}.glb',shapes,colors)
 
 shrub_variants=[((.20,.50,.13),0),((.29,.56,.16),.42)]
