@@ -12,7 +12,7 @@ class Cartesian3{constructor(x,y,z){Object.assign(this,{x,y,z})}static fromDegre
 const C={Color,Cartesian2:class{},Cartesian3,CustomShader:class{constructor(options){Object.assign(this,options)}},UniformType:{VEC3:'vec3'},Transforms:{headingPitchRollQuaternion:()=>({})},HeadingPitchRoll:class{},Math:{toRadians:value=>value*Math.PI/180},ShadowMode:{DISABLED:0},DistanceDisplayCondition:class{},HeightReference:{CLAMP_TO_GROUND:0},JulianDate:{now:()=>0}};
 const state={objects3d:[],vegetationSections:[]};let persisted=0,pointIndex=0;const mapPoints=[[15.21,59.245],[15.209,59.244],[15.212,59.244],[15.2105,59.247]];
 await import('../dist/object-builder.js');
-assert.equal(window.GvikAssetRegistry.deciduous.far>1253,true);assert.equal(window.GvikAssetRegistry.deciduous.minPixels>0,true);
+assert.equal(window.GvikAssetRegistry.deciduous.far>1253,true);assert.equal(window.GvikAssetRegistry.deciduous.minPixels>0,true);assert.equal(window.GvikAssetRegistry.sparse.label,'Tunt grenverk');assert.equal(window.GvikAssetRegistry.sparse.models[0],'models/tree_sparse_01.glb');
 const builder=window.GvikObjectBuilder.create({viewer,C,state,persist:()=>persisted++,status:()=>{},mapPoint:()=>mapPoints[Math.min(pointIndex++,mapPoints.length-1)],terrainPosition:(point,height)=>[...point,height]});
 assert.equal(elements['object-panel'].dataset.ready,'true');
 elements['place-single-object'].onclick();assert.equal(builder.handleMapClick({position:{}}),true);assert.equal(state.objects3d.length,1);assert.equal(persisted,1);
