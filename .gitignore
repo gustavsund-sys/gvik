@@ -1,4 +1,5 @@
 work/
 outputs/
 .sites-runtime/
+firepit-log.txt
 .DS_Store
