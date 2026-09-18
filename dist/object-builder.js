@@ -1,0 +1,66 @@
+(function(){
+  const registry={
+    deciduous:{label:'Lövträd',models:['models/tree_deciduous_01.glb','models/tree_deciduous_02.glb','models/tree_deciduous_03.glb'],baseHeight:9,heightRange:[7,12],far:750},
+    conifer:{label:'Barrträd',models:['models/tree_conifer_01.glb','models/tree_conifer_02.glb','models/tree_conifer_03.glb'],baseHeight:10,heightRange:[8,14],far:850},
+    shrub:{label:'Buske',models:['models/shrub_01.glb','models/shrub_02.glb'],baseHeight:1.5,heightRange:[.8,2.4],far:450}
+  };
+  window.GvikAssetRegistry=registry;
+
+  const byId=id=>document.getElementById(id);
+  const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+  const number=(id,fallback)=>Number.isFinite(+byId(id).value)?+byId(id).value:fallback;
+  const seedValue=()=>Math.floor(Math.random()*2147483646)+1;
+  function random(seed){let value=seed|0;return()=>{value+=0x6D2B79F5;let t=value;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+  function inside(point,polygon){let hit=false;for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){const a=polygon[i],b=polygon[j],cross=((a[1]>point[1])!==(b[1]>point[1]))&&(point[0]<(b[0]-a[0])*(point[1]-a[1])/(b[1]-a[1])+a[0]);if(cross)hit=!hit}return hit}
+  function meters(a,b){const lat=(a[1]+b[1])*.5*Math.PI/180,x=(a[0]-b[0])*111320*Math.cos(lat),y=(a[1]-b[1])*111320;return Math.hypot(x,y)}
+  function generated(section){
+    const rng=random(section.randomSeed),polygon=section.polygon,bounds=polygon.reduce((b,p)=>[Math.min(b[0],p[0]),Math.min(b[1],p[1]),Math.max(b[2],p[0]),Math.max(b[3],p[1])],[Infinity,Infinity,-Infinity,-Infinity]),items=[],target=clamp(Math.round(section.density),1,120),spacing=clamp(section.minimumSpacing,1,30),asset=registry[section.vegetationType]||registry.deciduous,variants=section.modelVariants?.length||asset.models.length,attempts=target*80;
+    for(let i=0;i<attempts&&items.length<target;i++){
+      const point=[bounds[0]+rng()*(bounds[2]-bounds[0]),bounds[1]+rng()*(bounds[3]-bounds[1])];if(!inside(point,polygon)||items.some(item=>meters(item.position,point)<spacing))continue;
+      const ownSeed=Math.floor(rng()*2147483646)+1,variant=Math.floor(rng()*Math.max(1,variants));items.push({position:point,rotation:section.rotationRange[0]+rng()*(section.rotationRange[1]-section.rotationRange[0]),scale:section.scaleRange[0]+rng()*(section.scaleRange[1]-section.scaleRange[0]),height:section.heightRange[0]+rng()*(section.heightRange[1]-section.heightRange[0]),variant,seed:ownSeed,asset});
+    }
+    return items;
+  }
+
+  window.GvikObjectBuilder={create(options){
+    const {viewer,C,state,persist,status,mapPoint,terrainPosition}=options;let mode=null,points=[],selected=null,entities=[],preview=[];
+    const clear=list=>{list.forEach(entity=>viewer.entities.remove(entity));list.length=0};
+    const getValue=(entity,key)=>{const value=entity?.[key];return value?.getValue?value.getValue(C.JulianDate.now()):value};
+    const orientation=(point,rotation)=>C.Transforms.headingPitchRollQuaternion(terrainPosition(point,0),new C.HeadingPitchRoll(C.Math.toRadians(rotation||0),0,0));
+    function addModel(item,meta){
+      const asset=registry[item.assetType||meta.assetType]||registry.deciduous,variant=clamp(Math.floor(item.variant||0),0,asset.models.length-1),position=terrainPosition(item.position,0),entity=viewer.entities.add({position,orientation:orientation(item.position,item.rotation),model:{uri:new URL(asset.models[variant],location.href).href,scale:Math.max(.1,item.height*item.scale),minimumPixelSize:0,maximumScale:30,runAnimations:false,shadows:C.ShadowMode.DISABLED,distanceDisplayCondition:new C.DistanceDisplayCondition(0,asset.far),color:meta.selected?C.Color.fromCssColorString('#d4ee88'):C.Color.WHITE,colorBlendAmount:meta.selected ? .35 : 0}});
+      if(meta.objectId){entity.addProperty('object3dId');entity.object3dId=meta.objectId}if(meta.sectionId){entity.addProperty('section3dId');entity.section3dId=meta.sectionId}entities.push(entity);
+    }
+    function drawSelection(section){if(!section)return;const closed=[...section.polygon,section.polygon[0]];entities.push(viewer.entities.add({polyline:{positions:C.Cartesian3.fromDegreesArray(closed.flat()),width:4,material:C.Color.fromCssColorString('#d4ee88'),clampToGround:true}}))}
+    function render(){
+      clear(entities);let count=0;for(const object of state.objects3d){if(count++>=1000)break;addModel(object,{objectId:object.id,assetType:object.assetType,selected:selected?.kind==='object'&&selected.id===object.id})}
+      for(const section of state.vegetationSections){const assetType=section.vegetationType;for(const item of generated(section)){if(count++>=1000)break;addModel({...item,assetType},{sectionId:section.id,assetType,selected:selected?.kind==='section'&&selected.id===section.id})}if(selected?.kind==='section'&&selected.id===section.id)drawSelection(section)}
+      viewer.scene.requestRender();updateCount();
+    }
+    function updateCount(){const singles=state.objects3d.length,sections=state.vegetationSections.length,total=state.vegetationSections.reduce((sum,s)=>sum+generated(s).length,0)+singles;byId('object-count').textContent=`${singles} enskilda · ${sections} sektioner · ${total} objekt`}
+    function updatePreview(){clear(preview);points.forEach((p,i)=>preview.push(viewer.entities.add({position:terrainPosition(p,1),point:{pixelSize:12,color:C.Color.fromCssColorString('#d4ee88'),outlineColor:C.Color.fromCssColorString('#08251f'),outlineWidth:2,disableDepthTestDistance:Number.POSITIVE_INFINITY},label:{text:String(i+1),font:'600 11px Inter',pixelOffset:new C.Cartesian2(0,-20),fillColor:C.Color.WHITE,showBackground:true,backgroundColor:C.Color.fromCssColorString('#08251f'),disableDepthTestDistance:Number.POSITIVE_INFINITY}})));if(points.length>1){const outline=points.length>2?[...points,points[0]]:points;preview.push(viewer.entities.add({polyline:{positions:C.Cartesian3.fromDegreesArray(outline.flat()),width:3,material:C.Color.fromCssColorString('#d4ee88'),clampToGround:true}}))}if(points.length>2)preview.push(viewer.entities.add({polygon:{hierarchy:C.Cartesian3.fromDegreesArray(points.flat()),material:C.Color.fromCssColorString('#d4ee88').withAlpha(.18),heightReference:C.HeightReference.CLAMP_TO_GROUND}}));viewer.scene.requestRender();byId('finish-vegetation').disabled=points.length<3;byId('undo-vegetation').disabled=!points.length}
+    function sectionSettings(existing){const type=byId('object-type').value,asset=registry[type];return{id:existing?.id||`vegetation-${Date.now()}`,name:byId('vegetation-name').value.trim()||`${asset.label} ${state.vegetationSections.length+1}`,polygon:existing?.polygon||points.map(p=>p.slice()),vegetationType:type,density:clamp(number('vegetation-density',30),1,120),minimumSpacing:clamp(number('vegetation-spacing',4),1,30),scaleRange:[Math.max(.2,1-number('vegetation-variation',30)/100),1+number('vegetation-variation',30)/100],heightRange:[Math.max(.2,number('vegetation-height-min',asset.heightRange[0])),Math.max(.3,number('vegetation-height-max',asset.heightRange[1]))],rotationRange:[0,360],modelVariants:asset.models.slice(),randomSeed:existing?.randomSeed||seedValue()}}
+    function select(kind,id){selected={kind,id};const object=kind==='object'?state.objects3d.find(x=>x.id===id):null,section=kind==='section'?state.vegetationSections.find(x=>x.id===id):null;byId('object-selection').hidden=false;byId('selected-object-fields').hidden=!object;byId('selected-section-fields').hidden=!section;if(object){byId('selected-title').textContent=`${registry[object.assetType]?.label||'Objekt'}`;byId('selected-rotation').value=object.rotation;byId('selected-scale').value=object.scale;byId('selected-height').value=object.height}if(section){byId('selected-title').textContent=section.name;byId('object-type').value=section.vegetationType;byId('vegetation-name').value=section.name;byId('vegetation-density').value=section.density;byId('vegetation-spacing').value=section.minimumSpacing;byId('vegetation-variation').value=Math.round((section.scaleRange[1]-1)*100);byId('vegetation-height-min').value=section.heightRange[0];byId('vegetation-height-max').value=section.heightRange[1];updateRangeValues()}render()}
+    function deselect(){selected=null;byId('object-selection').hidden=true;render()}
+    function start(next,message){mode=next;points=[];updatePreview();status(message)}
+    function finishSection(){if(points.length<3)return;const redraw=mode==='section-redraw'&&selected?.kind==='section',existing=redraw?state.vegetationSections.find(s=>s.id===selected.id):null;if(redraw){existing.polygon=points.map(p=>p.slice());persist();status(`${existing.name} fick en ny gräns. Fördelningen ändras först när du väljer Regenerera.`);mode=null;points=[];clear(preview);render();return}const section=sectionSettings();state.vegetationSections.push(section);mode=null;points=[];clear(preview);persist();select('section',section.id);status(`${section.name} skapades med ${generated(section).length} objekt.`)}
+    function syncAssetDefaults(){const asset=registry[byId('object-type').value];byId('vegetation-height-min').value=asset.heightRange[0];byId('vegetation-height-max').value=asset.heightRange[1];byId('single-height').value=asset.baseHeight}
+    function updateRangeValues(){byId('vegetation-density-value').value=`${byId('vegetation-density').value} objekt`;byId('vegetation-spacing-value').value=`${byId('vegetation-spacing').value} m`;byId('vegetation-variation-value').value=`±${byId('vegetation-variation').value} %`}
+    byId('object-type').onchange=syncAssetDefaults;
+    for(const id of ['vegetation-density','vegetation-spacing','vegetation-variation'])byId(id).addEventListener('input',updateRangeValues);
+    byId('place-single-object').onclick=()=>start('single','Klicka på kartan där objektet ska placeras.');
+    byId('draw-vegetation').onclick=()=>start('section','Klicka runt vegetationsområdet och välj sedan Slutför område.');
+    byId('finish-vegetation').onclick=finishSection;byId('undo-vegetation').onclick=()=>{points.pop();updatePreview()};
+    byId('selected-rotation').oninput=e=>{const object=state.objects3d.find(x=>x.id===selected?.id);if(object){object.rotation=+e.target.value;render()}};
+    byId('selected-scale').oninput=e=>{const object=state.objects3d.find(x=>x.id===selected?.id);if(object){object.scale=+e.target.value;render()}};
+    byId('selected-height').oninput=e=>{const object=state.objects3d.find(x=>x.id===selected?.id);if(object){object.height=+e.target.value;render()}};
+    for(const id of ['selected-rotation','selected-scale','selected-height'])byId(id).onchange=()=>persist();
+    byId('move-selected-object').onclick=()=>{if(selected?.kind==='object')start('move-object','Klicka på objektets nya position.')};
+    byId('save-section-settings').onclick=()=>{const index=state.vegetationSections.findIndex(s=>s.id===selected?.id);if(index<0)return;const old=state.vegetationSections[index],next=sectionSettings(old);next.polygon=old.polygon;next.randomSeed=old.randomSeed;state.vegetationSections[index]=next;persist();render();status('Sektionens inställningar sparades. Välj Regenerera för en ny fördelning.')};
+    byId('regenerate-section').onclick=()=>{const section=state.vegetationSections.find(s=>s.id===selected?.id);if(!section)return;section.randomSeed=seedValue();persist();render();status(`${section.name} regenererades.`)};
+    byId('redraw-section').onclick=()=>{if(selected?.kind==='section')start('section-redraw','Rita sektionens nya gräns och välj Slutför område.')};
+    byId('delete-selected-object').onclick=()=>{if(!selected)return;if(selected.kind==='object')state.objects3d=state.objects3d.filter(x=>x.id!==selected.id);else state.vegetationSections=state.vegetationSections.filter(x=>x.id!==selected.id);persist();deselect();status('3D-objektet togs bort.')};
+    syncAssetDefaults();updateRangeValues();render();byId('object-panel').dataset.ready='true';
+    return{render,setBuilderMode(builder){if(!builder){mode=null;points=[];clear(preview);selected=null;byId('object-selection').hidden=true;render()}},handleMapClick(click){if(!document.body.classList.contains('builder-mode'))return false;const point=mapPoint(click.position);if(mode==='single'&&point){const type=byId('object-type').value,asset=registry[type],object={id:`object-${Date.now()}`,assetType:type,position:point,rotation:0,scale:1,height:number('single-height',asset.baseHeight),variant:Math.floor(Math.random()*asset.models.length),seed:seedValue()};state.objects3d.push(object);mode=null;persist();select('object',object.id);status(`${asset.label} placerades.`);return true}if((mode==='section'||mode==='section-redraw')&&point){points.push(point);updatePreview();return true}if(mode==='move-object'&&point){const object=state.objects3d.find(x=>x.id===selected?.id);if(object){object.position=point;mode=null;persist();render();status('Objektets position uppdaterades.')}return true}if(mode)return true;const picked=viewer.scene.pick(click.position)?.id,objectId=getValue(picked,'object3dId'),sectionId=getValue(picked,'section3dId');if(objectId){select('object',objectId);return true}if(sectionId){select('section',sectionId);return true}return false}};
+  }};
+})();
