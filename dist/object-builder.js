@@ -1,8 +1,8 @@
 (function(){
   const registry={
-    deciduous:{label:'Lövträd',models:['models/tree_deciduous_01.glb','models/tree_deciduous_02.glb','models/tree_deciduous_03.glb'],baseHeight:9,heightRange:[7,12],far:750},
-    conifer:{label:'Barrträd',models:['models/tree_conifer_01.glb','models/tree_conifer_02.glb','models/tree_conifer_03.glb'],baseHeight:10,heightRange:[8,14],far:850},
-    shrub:{label:'Buske',models:['models/shrub_01.glb','models/shrub_02.glb'],baseHeight:1.5,heightRange:[.8,2.4],far:450}
+    deciduous:{label:'Lövträd',models:['models/tree_deciduous_01.glb','models/tree_deciduous_02.glb','models/tree_deciduous_03.glb'],baseHeight:9,heightRange:[7,12],far:2200,minPixels:2},
+    conifer:{label:'Barrträd',models:['models/tree_conifer_01.glb','models/tree_conifer_02.glb','models/tree_conifer_03.glb'],baseHeight:10,heightRange:[8,14],far:2400,minPixels:2},
+    shrub:{label:'Buske',models:['models/shrub_01.glb','models/shrub_02.glb'],baseHeight:1.5,heightRange:[.8,2.4],far:1800,minPixels:2}
   };
   window.GvikAssetRegistry=registry;
 
@@ -28,7 +28,7 @@
     const getValue=(entity,key)=>{const value=entity?.[key];return value?.getValue?value.getValue(C.JulianDate.now()):value};
     const orientation=(point,rotation)=>C.Transforms.headingPitchRollQuaternion(terrainPosition(point,0),new C.HeadingPitchRoll(C.Math.toRadians(rotation||0),0,0));
     function addModel(item,meta){
-      const asset=registry[item.assetType||meta.assetType]||registry.deciduous,variant=clamp(Math.floor(item.variant||0),0,asset.models.length-1),position=terrainPosition(item.position,0),entity=viewer.entities.add({position,orientation:orientation(item.position,item.rotation),model:{uri:new URL(asset.models[variant],location.href).href,scale:Math.max(.1,item.height*item.scale),minimumPixelSize:0,maximumScale:30,runAnimations:false,shadows:C.ShadowMode.DISABLED,distanceDisplayCondition:new C.DistanceDisplayCondition(0,asset.far),color:meta.selected?C.Color.fromCssColorString('#d4ee88'):C.Color.WHITE,colorBlendAmount:meta.selected ? .35 : 0}});
+      const asset=registry[item.assetType||meta.assetType]||registry.deciduous,variant=clamp(Math.floor(item.variant||0),0,asset.models.length-1),position=terrainPosition(item.position,0),entity=viewer.entities.add({position,orientation:orientation(item.position,item.rotation),model:{uri:new URL(asset.models[variant],location.href).href,scale:Math.max(.1,item.height*item.scale),minimumPixelSize:asset.minPixels,maximumScale:30,runAnimations:false,shadows:C.ShadowMode.DISABLED,distanceDisplayCondition:new C.DistanceDisplayCondition(0,asset.far),color:meta.selected?C.Color.fromCssColorString('#d4ee88'):C.Color.WHITE,colorBlendAmount:meta.selected ? .35 : 0}});
       if(meta.objectId){entity.addProperty('object3dId');entity.object3dId=meta.objectId}if(meta.sectionId){entity.addProperty('section3dId');entity.section3dId=meta.sectionId}entities.push(entity);
     }
     function drawSelection(section){if(!section)return;const closed=[...section.polygon,section.polygon[0]];entities.push(viewer.entities.add({polyline:{positions:C.Cartesian3.fromDegreesArray(closed.flat()),width:4,material:C.Color.fromCssColorString('#d4ee88'),clampToGround:true}}))}
