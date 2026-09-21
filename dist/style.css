@@ -73,7 +73,7 @@ button:focus-visible{outline:2px solid #e1f5aa;outline-offset:3px}
  .user-mode .map-heading{left:60px;top:8px;padding:2px 4px;min-height:44px;display:flex;align-items:center}
  .user-mode .hole-step{width:32px;min-width:32px;height:40px}.user-mode .map-heading h2{font-size:16px;white-space:nowrap}
  .user-mode .map-tools{gap:8px}.user-mode .map-tools button{min-height:44px;min-width:44px;padding:8px;font-size:12px}
- .user-mode .user-hole-controls{left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));max-width:none;width:auto;display:grid;grid-template-columns:minmax(0,1fr);gap:6px;padding:7px 108px 7px 7px;overflow:visible;border-radius:18px}
+ .user-mode .user-hole-controls{left:8px;right:auto;bottom:calc(8px + env(safe-area-inset-bottom));max-width:calc(100vw - 16px);width:max-content;display:grid;grid-template-columns:minmax(0,1fr);gap:6px;padding:7px;overflow:visible;border-radius:18px}
  .user-mode .user-hole-controls .button-row{display:flex;gap:4px;min-width:0}.user-mode .user-hole-controls button{min-width:0;min-height:44px;font-size:12px;padding:6px 5px;white-space:nowrap;flex:1}
  .user-mode .view-buttons{padding:0;background:transparent}.user-mode .player-tee-buttons{padding:0}
  .user-mode .settings-toggle,.user-mode .map-info-toggle{bottom:calc(18px + env(safe-area-inset-bottom));width:44px;height:44px;box-shadow:none}
@@ -83,7 +83,7 @@ button:focus-visible{outline:2px solid #e1f5aa;outline-offset:3px}
  .user-mode .course-logo-overlay{width:clamp(96px,27vw,150px);opacity:.78}
  .user-mode #status{font-size:12px;line-height:1.5;border-radius:10px}
 }
-@media(max-width:370px){.user-mode .user-hole-controls{padding-right:100px}.user-mode .user-hole-controls button{font-size:11px}.user-mode .settings-toggle{right:12px}.user-mode .map-info-toggle{right:59px}}
+@media(max-width:370px){.user-mode .user-hole-controls{padding-right:7px}.user-mode .user-hole-controls button{font-size:11px}.user-mode .settings-toggle{right:12px}.user-mode .map-info-toggle{right:59px}}
 /* Collapsible player panel; toggle remains reachable when folded. */
 .user-mode .user-hole-controls #player-controls-toggle{position:absolute;right:8px;top:-43px;width:44px;height:40px;min-height:40px;padding:8px;background:#102f28f7;border:1px solid #ffffff26;border-radius:12px;box-shadow:0 3px 12px #00140f24}
 .user-mode .user-hole-controls.controls-collapsed{background:transparent;border-color:transparent;box-shadow:none;padding:0;height:44px;min-height:0;pointer-events:none}
