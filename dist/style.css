@@ -91,3 +91,10 @@ button:focus-visible{outline:2px solid #e1f5aa;outline-offset:3px}
 .user-mode .user-hole-controls.controls-collapsed #player-controls-toggle{position:static;pointer-events:auto;transform:none}
 .controls-collapsed #player-controls-toggle svg{transform:rotate(180deg)}
 @media(max-width:900px){.user-mode .user-hole-controls #player-controls-toggle{right:8px}.user-mode .user-hole-controls.controls-collapsed{display:block;right:auto;max-width:44px;bottom:calc(18px + env(safe-area-inset-bottom))}}
+/* GPS and measuring controls share the player view row on mobile. */
+.user-mode .view-buttons #gps-axis-toggle,.user-mode .view-buttons #measure-menu{display:flex;align-items:center}
+.user-mode .view-buttons #gps-axis-toggle{min-width:44px;justify-content:center;padding:7px 9px;font-size:18px}
+.user-mode .view-buttons #measure-menu{gap:0;margin-left:2px}
+.user-mode .view-buttons #measure-menu .measure-toggle{display:block;min-width:44px;min-height:44px;padding:7px 9px;font-size:18px}
+.user-mode .view-buttons #measure-menu #measure{display:none}
+@media(max-width:900px){.user-mode .view-buttons #gps-axis-toggle,.user-mode .view-buttons #measure-menu{flex:0 0 44px}.user-mode .view-buttons #gps-axis-toggle,.user-mode .view-buttons #measure-menu .measure-toggle{min-height:44px}.user-mode .view-buttons #measure-menu{margin-left:0}}
