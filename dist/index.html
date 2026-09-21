@@ -5,7 +5,7 @@
   <title>Gustavsvik · Flyover</title><meta name="description" content="Märk upp Gustavsviks golfhål på en interaktiv 3D-karta.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230c2925'/%3E%3Cpath d='M11 25V7l14 5-14 5' stroke='%23d4ee88' stroke-width='2' fill='none'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.133.0/Build/Cesium/Widgets/widgets.css"><link rel="stylesheet" href="style.css?v=75">
-  <script src="https://cdn.jsdelivr.net/npm/cesium@1.133.0/Build/Cesium/Cesium.js" defer></script><script src="local-terrain.js" defer></script><script src="object-builder.js?v=25" defer></script><script src="app.js?v=76" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/cesium@1.133.0/Build/Cesium/Cesium.js" defer></script><script src="local-terrain.js" defer></script><script src="object-builder.js?v=25" defer></script><script src="app.js?v=77" defer></script>
 </head>
 <body class="user-mode">
   <header><div class="brand"><span class="mark">G<span>↗</span></span><div>GUSTAVSVIK<small>ÖREBRO CITY GOLF & COUNTRY CLUB</small></div></div><span class="badge">KARTVERKSTAD · PROTOTYP</span></header>
@@ -36,7 +36,7 @@
         <label class="field-label" for="area-type">Områdestyp</label><select id="area-type"><option value="tee">Teeområde</option><option value="green">Greenområde</option><option value="bunker">Bunker</option><option value="water">Vatten</option><option value="fairway">Fairway</option><option value="other">Övrigt område</option></select>
         <label class="field-label" for="area-label">Namn på området</label><input id="area-label" type="text" maxlength="50" placeholder="Exempel: Tee 40" autocomplete="off">
         <button id="draw-area" class="wide">Rita ny polygon</button><div class="button-row area-actions"><button id="finish-area" disabled>Slutför polygon</button><button id="undo-area" class="text-button" disabled>Ångra punkt</button><button id="save-area" disabled>Spara ändringar</button><button id="remove-area" class="text-button danger" disabled>Ta bort markerat</button></div>
-        <div class="flag-tools"><h3>Golfflagga</h3><p>Flaggan placeras automatiskt mitt på greenen. Ange den exakta hålpositionen vid behov.</p><div class="button-row"><button id="place-flag">Placera flagga</button><button id="reset-flag" class="text-button">Återställ till greenens mitt</button></div><small id="flag-status">Greenens mitt används</small></div>
+        <div class="flag-tools"><h3>Golfflagga</h3><p>Flaggan följer automatiskt längdaxelns greenpunkt när du flyttar den.</p><div class="button-row" hidden><button id="place-flag">Placera flagga</button><button id="reset-flag" class="text-button">Återställ till greenens mitt</button></div><small id="flag-status">Greenpunkten används</small></div>
       </section>
       <section class="editor-block axis-panel builder-only" id="axis-panel" hidden>
         <div class="section-heading"><span class="step">3</span><div><h2 id="axis-title">Längdaxel</h2><small>Fyra dragbara punkter</small></div></div>
