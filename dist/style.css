@@ -45,3 +45,42 @@ button:active{transform:translateY(0);box-shadow:inset 0 1px 4px #0005}.primary,
 .map-info-panel,.builder-lock form{background:linear-gradient(155deg,#10362df5,#08241ef7);border-color:#9ab8ad66;border-radius:16px;box-shadow:0 20px 54px #00130eb3}
 @media(max-width:900px){.app-header{height:66px;padding:0 max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left))}.brand{gap:10px}.brand-logo{width:48px;height:48px}.brand-copy strong{font-size:19px}.brand-copy small{display:block;font-size:7px;letter-spacing:1.35px;margin-top:4px}.builder-mode main,.user-mode main{height:calc(100dvh - 66px)}.user-mode .map-heading{border-radius:11px}.user-mode .map-heading-row{gap:6px;margin:0}.user-mode .hole-step{width:28px;height:28px;min-width:28px;font-size:22px}.user-mode .user-hole-controls{border-radius:12px}}
 @media(max-width:370px){.brand-copy strong{font-size:17px}.brand-copy small{display:block;font-size:6px;letter-spacing:1px}.brand-logo{width:44px;height:44px}}
+
+/* Unified mobile-first visual system */
+:root{--lime:#d8ed9c;--soft-shadow:0 4px 16px #00140f30}
+button,.primary,.wide,.editor-block,.map-heading,.user-mode .user-hole-controls,.map-info-panel,.builder-lock form{background-image:none;box-shadow:none}
+button{background:#153b31;border:1px solid #ffffff24;border-radius:12px;font-weight:600;transition:background .15s,border-color .15s}
+button:hover{background:#23483d;transform:none;box-shadow:none}button:active{background:#2c5346;box-shadow:none}
+button:focus-visible{outline:2px solid #e1f5aa;outline-offset:3px}
+.primary,.wide,.user-mode .player-tee-buttons button.active{background:#d8ed9c;color:#102b22;border-color:transparent}
+.app-header{background:#0c2c24;box-shadow:none;border-bottom:1px solid #ffffff14}.app-header::after{display:none}
+.brand-logo{filter:none}.brand-copy small{color:#a0b9af;letter-spacing:1.5px}
+.map-heading,.hole-menu-toggle,.map-tools button,.settings-toggle,.map-info-toggle{background:#102f28f5;border-color:#ffffff26;box-shadow:0 3px 12px #00140f24}
+.map-heading h2,.user-mode .map-heading h2{font:600 18px/1.2 system-ui,-apple-system,sans-serif;letter-spacing:-.3px}
+.map-heading-row{gap:8px}.hole-step,.user-mode .hole-step{width:40px;min-width:40px;height:40px;border:0;border-radius:10px;font-family:system-ui,sans-serif;background:transparent}
+.map-heading .eyebrow{display:none}.map-heading{padding:4px 6px}.map-heading-row{margin:0}
+.user-mode .user-hole-controls{background:#102f28f7;border:1px solid #ffffff26;padding:7px;border-radius:18px;gap:12px}
+.user-mode .user-hole-controls button{min-height:44px;font-size:13px;border:0;border-radius:12px}
+.user-mode .view-buttons{padding:3px;background:#061e1966;border-radius:14px}.user-mode .view-buttons button:not(.primary){background:transparent;color:#c4d4cd}
+.user-mode .player-tee-buttons{border:0;padding-left:0;gap:5px}.user-mode .player-tee-buttons button{background:#ffffff0a;border:1px solid #ffffff18;font-variant-numeric:tabular-nums}
+.user-mode .player-tee-buttons button.active{background:#d8ed9c;border-color:#d8ed9c}
+.user-mode .hole-button{border:0;background:transparent;color:#a8beb4}.user-mode .hole-button.active{background:#d8ed9c;color:#102b22}
+.settings-toggle,.map-info-toggle{border-radius:14px}.ui-icon{width:21px;height:21px;vertical-align:middle;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.editor-block{background:#103329;border-color:#ffffff1a}.editor-block p{line-height:1.6}
+@media(max-width:900px){
+ .app-header{height:56px;padding-inline:12px}.brand-logo{width:38px;height:38px}.brand-copy strong{font-size:18px}.brand-copy small{font-size:6px;letter-spacing:1.1px}
+ .user-mode main,.builder-mode main{height:calc(100dvh - 56px)}
+ .user-mode .map-heading{left:60px;top:8px;padding:2px 4px;min-height:44px;display:flex;align-items:center}
+ .user-mode .hole-step{width:32px;min-width:32px;height:40px}.user-mode .map-heading h2{font-size:16px;white-space:nowrap}
+ .user-mode .map-tools{gap:8px}.user-mode .map-tools button{min-height:44px;min-width:44px;padding:8px;font-size:12px}
+ .user-mode .user-hole-controls{left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));max-width:none;width:auto;display:grid;grid-template-columns:minmax(0,1fr);gap:6px;padding:7px 108px 7px 7px;overflow:visible;border-radius:18px}
+ .user-mode .user-hole-controls .button-row{display:flex;gap:4px;min-width:0}.user-mode .user-hole-controls button{min-width:0;min-height:44px;font-size:12px;padding:6px 5px;white-space:nowrap;flex:1}
+ .user-mode .view-buttons{padding:0;background:transparent}.user-mode .player-tee-buttons{padding:0}
+ .user-mode .settings-toggle,.user-mode .map-info-toggle{bottom:calc(18px + env(safe-area-inset-bottom));width:44px;height:44px;box-shadow:none}
+ .user-mode .settings-toggle{right:17px}.user-mode .map-info-toggle{right:65px}
+ .user-mode .map-info-panel{bottom:calc(124px + env(safe-area-inset-bottom))}
+ .user-mode aside{padding-bottom:calc(128px + env(safe-area-inset-bottom));scroll-padding-bottom:128px}
+ .user-mode .course-logo-overlay{width:clamp(96px,27vw,150px);opacity:.78}
+ .user-mode #status{font-size:12px;line-height:1.5;border-radius:10px}
+}
+@media(max-width:370px){.user-mode .user-hole-controls{padding-right:100px}.user-mode .user-hole-controls button{font-size:11px}.user-mode .settings-toggle{right:12px}.user-mode .map-info-toggle{right:59px}}
