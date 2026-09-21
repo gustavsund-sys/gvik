@@ -37,6 +37,9 @@ def cone(radius=.28, y0=.28, y1=1, segments=9):
     for i in range(segments): idx += [i,(i+1)%segments,tip]
     return p,n,idx
 
+def quad(points,normal=(0,0,1)):
+    return points,[normal]*4,[0,1,2,0,2,3]
+
 def ellipsoid(rx=.32, ry=.28, rz=.3, cy=.72, rings=4, segments=9, cx=0, cz=0):
     p=[]; n=[]; idx=[]
     for r in range(rings+1):
@@ -129,5 +132,11 @@ for variant,(green,phase) in enumerate(shrub_variants,1):
         shapes.append(branch((0,.02,0),(cx,cy,cz),.018,.005,6));colors.append(branch_color)
         shade=tuple(max(0,min(1,c+(.035 if index%2 else -.025))) for c in green);shapes.append(ellipsoid(.18,.15,.17,cy+.06,3,8,cx,cz));colors.append(shade)
     write_glb(f'shrub_0{variant}.glb',shapes,colors)
+
+# Optimized golf flag: an eight-sided pole and one double-sided flag surface.
+flag_pole=cylinder(.012,0,1,8)
+flag_cloth=quad([(0,.96,0),(.34,.88,0),(.34,.68,0),(0,.75,0)])
+flag_cloth_cross=quad([(0,.96,0),(0,.88,.34),(0,.68,.34),(0,.75,0)],(1,0,0))
+write_glb('golf_flag_01.glb',[flag_pole,flag_cloth,flag_cloth_cross],[(.92,.94,.91),(.78,.08,.08),(.78,.08,.08)])
 
 print(f'Generated {len(list(ROOT.glob("*.glb")))} GLB models in {ROOT}')
