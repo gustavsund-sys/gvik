@@ -84,3 +84,10 @@ button:focus-visible{outline:2px solid #e1f5aa;outline-offset:3px}
  .user-mode #status{font-size:12px;line-height:1.5;border-radius:10px}
 }
 @media(max-width:370px){.user-mode .user-hole-controls{padding-right:100px}.user-mode .user-hole-controls button{font-size:11px}.user-mode .settings-toggle{right:12px}.user-mode .map-info-toggle{right:59px}}
+/* Collapsible player panel; toggle remains reachable when folded. */
+.user-mode .user-hole-controls #player-controls-toggle{position:absolute;right:8px;top:-43px;width:44px;height:40px;min-height:40px;padding:8px;background:#102f28f7;border:1px solid #ffffff26;border-radius:12px;box-shadow:0 3px 12px #00140f24}
+.user-mode .user-hole-controls.controls-collapsed{background:transparent;border-color:transparent;box-shadow:none;padding:0;height:44px;min-height:0;pointer-events:none}
+.user-mode .user-hole-controls.controls-collapsed>:not(#player-controls-toggle){display:none!important}
+.user-mode .user-hole-controls.controls-collapsed #player-controls-toggle{position:static;pointer-events:auto;transform:none}
+.controls-collapsed #player-controls-toggle svg{transform:rotate(180deg)}
+@media(max-width:900px){.user-mode .user-hole-controls #player-controls-toggle{right:8px}.user-mode .user-hole-controls.controls-collapsed{display:block;right:auto;max-width:44px;bottom:calc(18px + env(safe-area-inset-bottom))}}
