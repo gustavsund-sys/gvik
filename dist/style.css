@@ -23,3 +23,23 @@
 }
 @media(max-width:900px) and (orientation:landscape){.builder-mode main{grid-template-columns:min(350px,44vw) minmax(0,1fr);grid-template-rows:1fr}.builder-mode aside{border-right:1px solid #4d6f63}}
 @media(max-width:370px){.brand small{display:none}.user-mode .user-hole-controls button{padding-inline:5px;font-size:10px}.user-mode .user-hole-controls{max-width:calc(100vw - 58px)}.user-mode #status{display:none}}
+
+/* Refined course identity */
+:root{--panel:#092820;--panel2:#123a30;--line:#52786b;--lime:#d8ef8d;--surface-glass:#0a2a23e8;--soft-shadow:0 12px 32px #00140f42}
+.app-header{height:78px;padding:0 28px;background:linear-gradient(112deg,#092a22 0%,#0d352b 58%,#123c30 100%);border-bottom:1px solid #89a99d55;box-shadow:0 10px 30px #00150f40;position:relative;z-index:40}
+.app-header::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,#d8ef8d80 24%,#fff2 70%,transparent)}
+.brand{gap:14px;letter-spacing:0}.brand-logo{width:58px;height:58px;object-fit:contain;filter:drop-shadow(0 5px 10px #0008)}.brand-copy{display:flex;flex-direction:column;justify-content:center}.brand-copy strong{font:600 24px/1.05 Georgia,"Times New Roman",serif;letter-spacing:.15px;color:#fbfaf5}.brand-copy small{margin-top:5px;color:#bdd0c9;font-size:9px;line-height:1;letter-spacing:2.05px;font-weight:650;text-transform:uppercase}.mark,.badge{display:none}
+main{height:calc(100% - 78px)}
+aside{background:linear-gradient(180deg,#092820,#071f1a);border-right-color:#71928655}
+button{border-color:#78988d80;background:linear-gradient(180deg,#19473b,#12372e);border-radius:11px;box-shadow:inset 0 1px #ffffff0d,0 4px 12px #00120d26;font-weight:600}
+button:hover{background:linear-gradient(180deg,#235548,#194439);box-shadow:inset 0 1px #ffffff14,0 6px 16px #00120d3d;transform:translateY(-1px)}
+button:active{transform:translateY(0);box-shadow:inset 0 1px 4px #0005}.primary,.wide{background:linear-gradient(180deg,#e1f5a2,#cee97c);border-color:#e5f8aa;color:#173027;box-shadow:0 5px 16px #091d1340}.primary:hover,.wide:hover{background:linear-gradient(180deg,#e9f9b9,#d8ef8d);color:#11261e}
+.editor-block{border-color:#6d908355;background:linear-gradient(155deg,#10352c,#0b2d25);border-radius:16px;box-shadow:inset 0 1px #ffffff0a,0 8px 22px #00140e1c}
+.map-heading{padding:12px 16px;background:linear-gradient(145deg,#0a2a23f2,#123a30e8);border-color:#a0bcb14d;border-radius:14px;box-shadow:var(--soft-shadow);backdrop-filter:blur(14px)}
+.map-heading h2{color:#fffdf7}.hole-menu-toggle,.map-tools button,.map-tools .toggle,.settings-toggle,.map-info-toggle{background:linear-gradient(145deg,#123b31ed,#092920ed);border-color:#a1beb36b;box-shadow:0 8px 22px #00130e55;backdrop-filter:blur(14px)}
+.user-mode .user-hole-controls{border-color:#97b3a766;background:linear-gradient(145deg,#0b2d26f2,#123b31ec);border-radius:14px;box-shadow:var(--soft-shadow);backdrop-filter:blur(16px)}
+.user-mode .user-hole-controls button{border-radius:10px}.user-mode .player-tee-buttons button.active{background:linear-gradient(180deg,#e2f6a2,#cce877);border-color:#ebfbb8}
+.settings-toggle,.map-info-toggle{border-radius:16px}
+.map-info-panel,.builder-lock form{background:linear-gradient(155deg,#10362df5,#08241ef7);border-color:#9ab8ad66;border-radius:16px;box-shadow:0 20px 54px #00130eb3}
+@media(max-width:900px){.app-header{height:66px;padding:0 max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left))}.brand{gap:10px}.brand-logo{width:48px;height:48px}.brand-copy strong{font-size:19px}.brand-copy small{display:block;font-size:7px;letter-spacing:1.35px;margin-top:4px}.builder-mode main,.user-mode main{height:calc(100dvh - 66px)}.user-mode .map-heading{border-radius:11px}.user-mode .user-hole-controls{border-radius:12px}}
+@media(max-width:370px){.brand-copy strong{font-size:17px}.brand-copy small{display:block;font-size:6px;letter-spacing:1px}.brand-logo{width:44px;height:44px}}
