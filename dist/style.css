@@ -98,3 +98,10 @@ button:focus-visible{outline:2px solid #e1f5aa;outline-offset:3px}
 .user-mode .view-buttons #measure-menu .measure-toggle{display:block;min-width:44px;min-height:44px;padding:7px 9px;font-size:18px}
 .user-mode .view-buttons #measure-menu #measure{display:none}
 @media(max-width:900px){.user-mode .view-buttons #gps-axis-toggle,.user-mode .view-buttons #measure-menu{flex:0 0 44px}.user-mode .view-buttons #gps-axis-toggle,.user-mode .view-buttons #measure-menu .measure-toggle{min-height:44px}.user-mode .view-buttons #measure-menu{margin-left:0}}
+
+/* Keep app controls in the upper map bar and give the hole rail its full width. */
+.user-mode .map-info-toggle,.user-mode .settings-toggle{top:10px;bottom:auto;z-index:1001}
+.user-mode .settings-toggle{right:18px}.user-mode .map-info-toggle{right:76px}
+.user-mode #course-routing-toggle{position:relative;top:58px}
+.user-mode .hole-button{width:100%;display:block}
+@media(max-width:900px){.user-mode .map-info-toggle,.user-mode .settings-toggle{top:8px;bottom:auto}.user-mode .settings-toggle{right:8px}.user-mode .map-info-toggle{right:58px}.user-mode .hole-button{min-width:100%;width:100%}}
