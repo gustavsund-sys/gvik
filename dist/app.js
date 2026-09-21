@@ -240,7 +240,7 @@ function selectView(id){
   stop(); state.view=String(id); state.mode=null; state.points=[]; selectedAreaId=null; clearEntities(measurement); $('measure').setAttribute('aria-pressed','false');
   $('course-logo').hidden=state.view!=='overview';
   document.querySelectorAll('.hole-button').forEach(b=>{const on=b.dataset.view===state.view;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
-  $('map-title').textContent=state.view==='overview'?'Hela banan':`Hål ${state.view}`;clearEntities(routeEntities);clearEntities(distanceEntities);redrawGuides();updateBoundaryUi();updateFlight();if(state.view==='overview'||!applyHoleView(state.view))reset();drawAreasAndAxis();updateGuideUi();requestAnimationFrame(()=>{drawAreasAndAxis();viewer.scene.requestRender()});
+  $('map-title').textContent=state.view==='overview'?'Hela banan':`Hål ${state.view}`;const holeNumber=Number(state.view),showHoleSteps=Number.isInteger(holeNumber);$('previous-hole').hidden=!showHoleSteps;$('next-hole').hidden=!showHoleSteps;if(showHoleSteps){$('previous-hole').disabled=holeNumber===1;$('next-hole').disabled=holeNumber===18}clearEntities(routeEntities);clearEntities(distanceEntities);redrawGuides();updateBoundaryUi();updateFlight();if(state.view==='overview'||!applyHoleView(state.view))reset();drawAreasAndAxis();updateGuideUi();requestAnimationFrame(()=>{drawAreasAndAxis();viewer.scene.requestRender()});
   const builder=document.body.classList.contains('builder-mode');status(state.view==='overview'?(builder?'Välj ett hål för att märka upp banans delar.':'Välj ett hål för att visa överblick och längder.'):(builder?`Märk upp områden och justera längdaxeln för hål ${state.view}.`:`Hål ${state.view} visas. Dra i längdaxelns punkter för att undersöka avstånden.`));
   return {view:state.view,areas:state.areas.filter(a=>String(a.hole)===state.view).length,hasAxis:!!state.axes[state.view]};
 }
@@ -310,6 +310,8 @@ async function boot(){
 }
 
 for(let i=1;i<=18;i++){ const b=document.createElement('button');b.className='hole-button';b.disabled=true;b.dataset.view=String(i);b.innerHTML=`<span>${i}</span><small>Hål ${i}</small>`;b.onclick=()=>selectView(String(i));$('hole-grid').appendChild(b); }
+$('previous-hole').onclick=()=>{const hole=Number(state.view);if(hole>1)selectView(String(hole-1))};
+$('next-hole').onclick=()=>{const hole=Number(state.view);if(hole<18)selectView(String(hole+1))};
 $('settings-toggle').onclick=()=>{if(document.body.classList.contains('builder-mode')){cloudBuilderActive=false;clearTimeout(cloudSaveTimer);getFirebaseModule().then(module=>module.signOutBuilder()).catch(()=>{});applyUiMode('user');status('Spelarläget visas.');return}$('builder-lock').hidden=false;$('builder-password').value='';$('builder-lock-error').hidden=true;requestAnimationFrame(()=>$('builder-email').focus())};
 $('hole-menu-toggle').onclick=()=>setHoleMenu(!document.body.classList.contains('hole-menu-open'));
 $('map-info-toggle').onclick=()=>{const panel=$('map-info-panel'),open=panel.hidden;panel.hidden=!open;$('map-info-toggle').setAttribute('aria-expanded',String(open));$('map-info-toggle').setAttribute('aria-label',open?'Dölj kartinformation':'Visa kartinformation')};
