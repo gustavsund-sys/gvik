@@ -7,7 +7,7 @@
     deciduousLod:{label:'LOD-lövträd (björk)',models:['models/tree_deciduous_01.glb'],sprite:'assets/lod-preview/deciduous-3.png',billboardOnly:true,baseHeight:9,heightRange:[7,12],far:900,mobileFar:600,minPixels:2,defaultColor:'#6f8739'},
     conifer:{label:'Barrträd',models:['models/tree_conifer_flo_bit_01.glb'],modelScale:.1845,baseHeight:10,heightRange:[8,14],far:2400,mobileFar:420,minPixels:2,defaultColor:'#17582b'},
     sparse:{label:'Tunt grenverk',models:['models/tree_sparse_01.glb'],modelScale:.1359,baseHeight:10,heightRange:[8,14],far:2400,mobileFar:420,minPixels:2,defaultColor:'#5b3a28'},
-    shrub:{label:'Buske',models:['models/shrub_01.glb','models/shrub_02.glb'],baseHeight:1.5,heightRange:[.8,2.4],far:1800,mobileFar:250,minPixels:2,defaultColor:'#3f8427'}
+    shrub:{label:'Buske',models:['models/shrub_01.glb','models/shrub_02.glb'],sprite:'assets/lod-preview/shrub-wide.png',billboardOnly:true,baseHeight:1.5,heightRange:[.8,2.4],far:650,mobileFar:300,minPixels:2,defaultColor:'#3f8427'}
   };
   window.GvikAssetRegistry=registry;
 
