@@ -15,8 +15,8 @@
       return ((values[k+c]*(1-fx)+values[k+c+1]*fx)*(1-fy)+(values[k+meta.width+c]*(1-fx)+values[k+meta.width+c+1]*fx)*fy)*meta.heightScale;
     };
   }
-  async function create(C){
-    const read=async(path,json=false)=>{const r=await fetch('terrain/'+path);if(!r.ok)throw Error('Höjdfilen kunde inte laddas: '+path);return json?r.json():r.arrayBuffer()};
+  async function create(C,basePath='terrain'){
+    const read=async(path,json=false)=>{const r=await fetch(basePath+'/'+path);if(!r.ok)throw Error('Höjdfilen kunde inte laddas: '+path);return json?r.json():r.arrayBuffer()};
     const [meta,buffer,contextMeta,contextBuffer]=await Promise.all([read('metadata.json',true),read('heights.bin'),read('context.json',true),read('context.bin')]);
     const detail=makeSampler(meta,buffer),context=makeSampler(contextMeta,contextBuffer);
     const sample=(lon,lat)=>{
@@ -31,7 +31,7 @@
     const rectangle=C.Rectangle.fromDegrees(contextMeta.west,contextMeta.south,contextMeta.east,contextMeta.north);
     let generated=0,reported=false;
     const provider={
-      tilingScheme:scheme,credit:new C.Credit('Terräng: Lantmäteriet · m656_51.tif · SWEN17_RH2000',true),
+      tilingScheme:scheme,credit:new C.Credit(`Terräng: Lantmäteriet · ${meta.source} · SWEN17_RH2000`,true),
       errorEvent:new C.Event(),hasWaterMask:false,hasVertexNormals:false,availability:undefined,
       getLevelMaximumGeometricError:level=>error0/2**level,
       getTileDataAvailable:(x,y,level)=>level<=maxLevel,
@@ -46,7 +46,7 @@
           }
         }
         generated++;
-        if(!reported&&level>=15&&C.Rectangle.intersection(rect,C.Rectangle.fromDegrees(meta.west,meta.south,meta.east,meta.north))){reported=true;console.info('Lantmäteriet: detailed terrain mesh generated from m656_51.tif at level '+level);}
+        if(!reported&&level>=15&&C.Rectangle.intersection(rect,C.Rectangle.fromDegrees(meta.west,meta.south,meta.east,meta.north))){reported=true;console.info(`Lantmäteriet: detailed terrain mesh generated from ${meta.source} at level ${level}`);}
         return Promise.resolve(new C.HeightmapTerrainData({buffer:out,width,height:width,childTileMask:level<maxLevel?15:0}));
       }
     };
