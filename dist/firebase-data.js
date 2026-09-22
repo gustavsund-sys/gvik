@@ -20,8 +20,8 @@ export async function loadCourseConfig() {
   return (await loadCourseConfigSnapshot())?.config || null;
 }
 
-export async function loadCourseConfigSnapshot() {
-  const snapshot = await getDocFromServer(doc(db, 'courses', 'gustavsvik'));
+export async function loadCourseConfigSnapshot(courseId = 'gustavsvik') {
+  const snapshot = await getDocFromServer(doc(db, 'courses', courseId));
   if (!snapshot.exists()) return null;
   const data = snapshot.data();
   return typeof data.configJson === 'string' ? { config: JSON.parse(data.configJson), revision: Number(data.sourceRevision) || 0 } : null;
@@ -40,9 +40,9 @@ export async function signOutBuilder() {
   await signOut(auth);
 }
 
-export async function saveCourseConfig(config, baseConfig, baseRevision) {
+export async function saveCourseConfig(config, baseConfig, baseRevision, courseId = 'gustavsvik') {
   if (auth.currentUser?.uid !== builderUid) throw new Error('not-authorized');
-  const ref = doc(db, 'courses', 'gustavsvik');
+  const ref = doc(db, 'courses', courseId);
   return runTransaction(db, async transaction => {
     const snapshot = await transaction.get(ref);
     const data = snapshot.exists() ? snapshot.data() : null;

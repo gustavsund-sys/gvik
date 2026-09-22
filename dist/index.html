@@ -5,10 +5,10 @@
   <title>Gustavsvik · Flyover</title><meta name="description" content="Märk upp Gustavsviks golfhål på en interaktiv 3D-karta.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230c2925'/%3E%3Cpath d='M11 25V7l14 5-14 5' stroke='%23d4ee88' stroke-width='2' fill='none'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.133.0/Build/Cesium/Widgets/widgets.css"><link rel="stylesheet" href="style.css?v=89">
-  <script src="https://cdn.jsdelivr.net/npm/cesium@1.133.0/Build/Cesium/Cesium.js" defer></script><script src="local-terrain.js" defer></script><script src="object-builder.js?v=28" defer></script><script src="app.js?v=106" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/cesium@1.133.0/Build/Cesium/Cesium.js" defer></script><script src="local-terrain.js" defer></script><script src="courses.js?v=1" defer></script><script src="object-builder.js?v=28" defer></script><script src="app.js?v=107" defer></script>
 </head>
 <body class="user-mode">
-  <header class="app-header"><div class="brand"><img class="brand-logo" src="assets/orebro-city-golf-logo.png" alt="Örebro City Golf & Country Club"><div class="brand-copy"><strong>Gustavsviksbanan</strong><small>Örebro City Golf &amp; Country Club</small></div></div><div class="header-actions" aria-label="Appinställningar"></div></header>
+  <header class="app-header"><div class="brand"><img class="brand-logo" src="assets/orebro-city-golf-logo.png" alt="Örebro City Golf & Country Club"><div class="brand-copy"><strong id="course-name">Gustavsviksbanan</strong><small>Örebro City Golf &amp; Country Club</small></div></div><div class="header-actions" aria-label="Appinställningar"><label class="course-picker-label" for="course-picker">Bana</label><select id="course-picker" aria-label="Välj bana"></select></div></header>
   <main>
     <aside>
       <div class="eyebrow mode-heading">GUSTAVSVIK 18 HÅL</div><h1 id="mode-title">Utforska banan.</h1><p class="intro" id="mode-intro">Välj ett hål, utforska längderna och växla mellan överblick och greenvy.</p>
