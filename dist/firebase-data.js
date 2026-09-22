@@ -15,13 +15,19 @@ const app = initializeApp({
 const db = getFirestore(app);
 const auth = getAuth(app);
 const builderUid = 'hJkbDc8jPkRD8xPmwQgzEJSlBwa2';
+const courseIds = new Set(['gustavsvik', 'mosjobanan', 'pay-and-play']);
+
+function checkedCourseId(courseId) {
+  if (!courseIds.has(courseId)) throw new Error('invalid-course');
+  return courseId;
+}
 
 export async function loadCourseConfig() {
   return (await loadCourseConfigSnapshot())?.config || null;
 }
 
 export async function loadCourseConfigSnapshot(courseId = 'gustavsvik') {
-  const snapshot = await getDocFromServer(doc(db, 'courses', courseId));
+  const snapshot = await getDocFromServer(doc(db, 'courses', checkedCourseId(courseId)));
   if (!snapshot.exists()) return null;
   const data = snapshot.data();
   return typeof data.configJson === 'string' ? { config: JSON.parse(data.configJson), revision: Number(data.sourceRevision) || 0 } : null;
@@ -42,7 +48,7 @@ export async function signOutBuilder() {
 
 export async function saveCourseConfig(config, baseConfig, baseRevision, courseId = 'gustavsvik') {
   if (auth.currentUser?.uid !== builderUid) throw new Error('not-authorized');
-  const ref = doc(db, 'courses', courseId);
+  const ref = doc(db, 'courses', checkedCourseId(courseId));
   return runTransaction(db, async transaction => {
     const snapshot = await transaction.get(ref);
     const data = snapshot.exists() ? snapshot.data() : null;

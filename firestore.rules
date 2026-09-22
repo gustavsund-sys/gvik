@@ -1,9 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /courses/gustavsvik {
+    match /courses/{courseId} {
       allow read: if true;
-      allow write: if request.auth != null
+      allow write: if courseId in ['gustavsvik', 'mosjobanan', 'pay-and-play']
+        && request.auth != null
         && request.auth.uid == 'hJkbDc8jPkRD8xPmwQgzEJSlBwa2'
         && request.resource.data.keys().hasOnly([
           'configJson', 'schemaVersion', 'sourceRevision', 'updatedAt', 'updatedBy'

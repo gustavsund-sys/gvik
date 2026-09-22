@@ -10,7 +10,7 @@ const isTouchDevice = () => navigator.maxTouchPoints>0||matchMedia('(pointer:coa
 const defaultVisualSettings={brightness:1,contrast:1,saturation:1,gamma:1,atmosphere:.12,bunkerOpacity:.14,waterOpacity:.12};
 const validPoint = p => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite) && p[0] > 10 && p[0] < 25 && p[1] > 55 && p[1] < 70;
 const state = {courseId:courseMeta.id,view:'overview',playing:false,progress:0,ready:false,mode:null,points:[],routes:{},boundary:[],guides:{},areas:[],axes:{},defaultAxes:{},axisTees:{},par3:{},holeViews:{},startView:null,desktopStartView:null,flagPositions:{},visualSettings:{...defaultVisualSettings},objects3d:[],vegetationSections:[],defaultsRevision:0,axesRevision:0,terrain:false,localTerrain:false,imagery:false};
-const getFirebaseModule = () => import('./firebase-data.js?v=3');
+const getFirebaseModule = () => import('./firebase-data.js?v=4');
 let hasLocalVisualSettings=false;
 
 try {
@@ -71,7 +71,7 @@ function syncPublishedAreas(defaults){
   if(!areas.every(a=>a&&+a.hole>=1&&+a.hole<=18&&Array.isArray(a.points)&&a.points.length>=3&&a.points.every(validPoint)))return;
   if(JSON.stringify(areas)===JSON.stringify(state.areas))return;
   // Preserve the previous local polygons before accepting published changes.
-  try{store.setItem('gustavsvik-areas-before-sync',JSON.stringify({savedAt:new Date().toISOString(),areas:state.areas}))}catch{return}
+  try{store.setItem(`gvik-${state.courseId}-areas-before-sync`,JSON.stringify({courseId:state.courseId,savedAt:new Date().toISOString(),areas:state.areas}))}catch{return}
   state.areas=JSON.parse(JSON.stringify(areas));
   persistLocal();
 }
@@ -313,8 +313,8 @@ function moveGuide(direction){
 function resizeGuide(g,newSize){const old=g.size||320,c=guideCenter(g),scale=newSize/old;g.corners=ensureGuideCorners(g).map(p=>[c[0]+(p[0]-c[0])*scale,c[1]+(p[1]-c[1])*scale]);g.size=newSize;g.lon=c[0];g.lat=c[1];}
 function rotateGuide(g,newRotation){const old=g.rotation||0,delta=(newRotation-old)*Math.PI/180,c=guideCenter(g),cos=Math.cos(delta),sin=Math.sin(delta),latCos=Math.cos(c[1]*Math.PI/180);g.corners=ensureGuideCorners(g).map(p=>{const x=(p[0]-c[0])*111320*latCos,y=(p[1]-c[1])*111320;return[c[0]+(x*cos+y*sin)/(111320*latCos),c[1]+(-x*sin+y*cos)/111320]});g.rotation=newRotation;g.lon=c[0];g.lat=c[1];}
 function exportWork(){
-  const payload={format:'gustavsvik-course-markup',version:7,exportedAt:new Date().toISOString(),crs:'EPSG:4326',boundary:state.boundary,areas:state.areas,axes:state.axes,defaultAxes:state.defaultAxes,axisTees:state.axisTees,par3:state.par3,holeViews:state.holeViews,startView:state.startView,desktopStartView:state.desktopStartView,flagPositions:state.flagPositions,visualSettings:state.visualSettings,objects3d:state.objects3d,vegetationSections:state.vegetationSections,source:'https://gustavsund-sys.github.io/gvik/'};
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'})); a.download=`gustavsvik-justeringar-${new Date().toISOString().slice(0,10)}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); status('Exportfilen är hämtad. Skicka den till mig när du är klar.');
+  const payload={format:'gvik-course-markup',version:8,courseId:state.courseId,courseName:courseMeta.name,exportedAt:new Date().toISOString(),crs:'EPSG:4326',boundary:state.boundary,areas:state.areas,axes:state.axes,defaultAxes:state.defaultAxes,axisTees:state.axisTees,par3:state.par3,holeViews:state.holeViews,startView:state.startView,desktopStartView:state.desktopStartView,flagPositions:state.flagPositions,visualSettings:state.visualSettings,objects3d:state.objects3d,vegetationSections:state.vegetationSections,source:'https://gustavsund-sys.github.io/gvik/'};
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'})); a.download=`${state.courseId}-justeringar-${new Date().toISOString().slice(0,10)}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); status(`Exportfilen för ${courseMeta.name} är hämtad.`);
 }
 
 async function boot(){
