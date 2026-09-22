@@ -1,0 +1,26 @@
+{
+  "bounds": [
+    15.131225130473668,
+    59.179025516405666,
+    15.175081433505058,
+    59.20152792577875
+  ],
+  "tileSize": 512,
+  "maximumLevel": 4,
+  "levelZeroTilesX": 1,
+  "levelZeroTilesY": 1,
+  "sources": [
+    "o65600_5075_25_mr26.tif"
+  ],
+  "sourceResolutionMetres": 0.16,
+  "date": "2026-05-02",
+  "sourceCRS": "EPSG:3006",
+  "tileCRS": "EPSG:4326",
+  "rasterSize": [
+    4096,
+    4096
+  ],
+  "tileCount": 341,
+  "attribution": "\u00a9 Lantm\u00e4teriet, CC BY 4.0",
+  "processing": "RGBI GeoTIFF reprojected to EPSG:4326; WebP quality 88; source footprint preserved"
+}
