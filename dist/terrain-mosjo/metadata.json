@@ -1,66 +1,60 @@
 {
-  "width": 2049,
-  "height": 1537,
+  "width": 1537,
+  "height": 3073,
   "west": 15.132,
-  "south": 59.18,
+  "south": 59.1575,
   "east": 15.173,
   "north": 59.201,
   "encoding": "uint16-le-centimetres",
   "heightScale": 0.01,
-  "source": "m656_50.tif",
+  "source": "m655_50.tif + m656_50.tif",
+  "sources": [
+    "m655_50.tif",
+    "m656_50.tif"
+  ],
   "sourceCRS": "EPSG:5845",
   "sourceResolutionMetres": 1,
   "verticalConversion": "h = H + N; SWEN17_RH2000",
   "geoidSource": "https://cdn.proj.org/se_lantmateriet_SWEN17_RH2000.tif",
   "geoidRangeMetres": [
     28.485962600708,
-    28.595680618286128
+    28.640379905700676
   ],
   "rh2000RangeMetres": [
-    31.387367863727853,
-    54.25201364854504
+    31.312900284079006,
+    54.25376291378121
   ],
-  "maxEncodingErrorMetres": 0.0049999931253523755,
+  "maxEncodingErrorMetres": 0.004999997896760533,
   "samples": [
     {
       "row": 0,
       "column": 0,
       "longitude": 15.132,
       "latitude": 59.201,
-      "rh2000_m": 41.01432710484514,
+      "rh2000_m": 41.01401162618922,
       "geoid_m": 28.55899009704589,
-      "ellipsoid_m": 69.57331720189103,
+      "ellipsoid_m": 69.57300172323511,
       "encoded_m": 69.57
     },
     {
-      "row": 768,
-      "column": 1024,
-      "longitude": 15.1525,
-      "latitude": 59.1905,
-      "rh2000_m": 44.7071609489131,
-      "geoid_m": 28.540989279747002,
-      "ellipsoid_m": 73.24815022866011,
-      "encoded_m": 73.25
-    },
-    {
-      "row": 384,
-      "column": 512,
-      "longitude": 15.14225,
-      "latitude": 59.195750000000004,
-      "rh2000_m": 40.95883200943875,
-      "geoid_m": 28.54980589509009,
-      "ellipsoid_m": 69.50863790452884,
-      "encoded_m": 69.51
-    },
-    {
       "row": 1536,
-      "column": 2048,
+      "column": 768,
+      "longitude": 15.1525,
+      "latitude": 59.179249999999996,
+      "rh2000_m": 35.148181268370216,
+      "geoid_m": 28.56169006824493,
+      "ellipsoid_m": 63.709871336615144,
+      "encoded_m": 63.71
+    },
+    {
+      "row": 3072,
+      "column": 1536,
       "longitude": 15.173,
-      "latitude": 59.18,
-      "rh2000_m": 33.31353487845463,
-      "geoid_m": 28.52468061447143,
-      "ellipsoid_m": 61.83821549292606,
-      "encoded_m": 61.84
+      "latitude": 59.1575,
+      "rh2000_m": 40.519232325996754,
+      "geoid_m": 28.570205092430108,
+      "ellipsoid_m": 69.08943741842685,
+      "encoded_m": 69.09
     }
   ]
 }

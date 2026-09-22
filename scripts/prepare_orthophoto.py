@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 import tempfile
@@ -48,8 +49,16 @@ def main() -> None:
             max(source.bounds.right for source in sources),
             max(source.bounds.top for source in sources),
         )
-        pixels = args.tile_size * (2**args.maximum_level)
-        resolution = max((bounds[2] - bounds[0]) / pixels, (bounds[3] - bounds[1]) / pixels)
+        source_width = min(source.bounds.right - source.bounds.left for source in sources)
+        source_height = min(source.bounds.top - source.bounds.bottom for source in sources)
+        level_zero_x = max(1, round((bounds[2] - bounds[0]) / source_width))
+        level_zero_y = max(1, round((bounds[3] - bounds[1]) / source_height))
+        pixels_x = args.tile_size * level_zero_x * (2**args.maximum_level)
+        pixels_y = args.tile_size * level_zero_y * (2**args.maximum_level)
+        resolution = max(
+            (bounds[2] - bounds[0]) / pixels_x,
+            (bounds[3] - bounds[1]) / pixels_y,
+        )
 
         args.output.parent.mkdir(parents=True, exist_ok=True)
         build_dir = Path(tempfile.mkdtemp(prefix=f"{args.output.name}-", dir=args.output.parent))
@@ -83,11 +92,12 @@ def main() -> None:
                 mosaic.crs, "EPSG:4326", *mosaic.bounds, densify_pts=41
             )
             for level in range(args.maximum_level + 1):
-                side = 2**level
-                width = args.tile_size * side
-                for y in range(side):
-                    row_north = north - (north - south) * y / side
-                    row_south = north - (north - south) * (y + 1) / side
+                columns = level_zero_x * (2**level)
+                rows = level_zero_y * (2**level)
+                width = args.tile_size * columns
+                for y in range(rows):
+                    row_north = north - (north - south) * y / rows
+                    row_south = north - (north - south) * (y + 1) / rows
                     row = np.zeros((3, args.tile_size, width), dtype=np.uint8)
                     reproject(
                         source=rasterio.band(mosaic, (1, 2, 3)),
@@ -102,7 +112,7 @@ def main() -> None:
                         num_threads=2,
                         warp_mem_limit=256,
                     )
-                    for x in range(side):
+                    for x in range(columns):
                         tile = np.moveaxis(
                             row[:, :, x * args.tile_size : (x + 1) * args.tile_size], 0, 2
                         )
@@ -112,20 +122,25 @@ def main() -> None:
                             tile_path, "WEBP", quality=args.quality, method=4
                         )
 
-        tile_count = sum(4**level for level in range(args.maximum_level + 1))
+        tile_count = level_zero_x * level_zero_y * sum(
+            4**level for level in range(args.maximum_level + 1)
+        )
         metadata = {
             "bounds": [west, south, east, north],
             "tileSize": args.tile_size,
             "maximumLevel": args.maximum_level,
-            "levelZeroTilesX": 1,
-            "levelZeroTilesY": 1,
+            "levelZeroTilesX": level_zero_x,
+            "levelZeroTilesY": level_zero_y,
             "sources": [path.name for path in args.inputs],
             "sourceResolutionMetres": float(sources[0].res[0]),
             "date": args.date,
-            "cacheVersion": f"{args.date.replace('-', '')}-{len(args.inputs)}x-l{args.maximum_level}",
+            "cacheVersion": (
+                f"{args.date.replace('-', '')}-"
+                f"{hashlib.sha1('|'.join(path.name for path in args.inputs).encode()).hexdigest()[:8]}"
+            ),
             "sourceCRS": str(crs),
             "tileCRS": "EPSG:4326",
-            "rasterSize": [pixels, pixels],
+            "rasterSize": [pixels_x, pixels_y],
             "tileCount": tile_count,
             "attribution": "© Lantmäteriet, CC BY 4.0",
             "processing": f"RGB GeoTIFF mosaic reprojected to EPSG:4326; WebP quality {args.quality}",

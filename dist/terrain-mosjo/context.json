@@ -1,1 +1,1 @@
-{"width": 513, "height": 513, "west": 15.13, "south": 59.179, "east": 15.175, "north": 59.202, "heightScale": 0.01, "source": "m656_50.tif", "note": "Coarse context from the same survey; approximately 20 m grid. Outside this rectangle the globe is clipped."}
+{"width": 257, "height": 513, "west": 15.132, "south": 59.1575, "east": 15.173, "north": 59.201, "heightScale": 0.01, "sources": ["m655_50.tif", "m656_50.tif"], "note": "Coarse context from the same surveys; outside this rectangle the globe is clipped."}

@@ -1,30 +1,28 @@
 {
   "bounds": [
-    15.087483494162253,
-    59.179025516405666,
-    15.175196410761483,
-    59.224015603084545
+    15.131139163328385,
+    59.15657459185935,
+    15.175081433505058,
+    59.20152792577875
   ],
   "tileSize": 512,
-  "maximumLevel": 5,
+  "maximumLevel": 4,
   "levelZeroTilesX": 1,
-  "levelZeroTilesY": 1,
+  "levelZeroTilesY": 2,
   "sources": [
-    "o65600_5050_25_mr26.tif",
-    "o65600_5075_25_mr26.tif",
-    "o65625_5050_25_mr26.tif",
-    "o65625_5075_25_mr26.tif"
+    "o65575_5075_25_mr26.tif",
+    "o65600_5075_25_mr26.tif"
   ],
   "sourceResolutionMetres": 0.16,
   "date": "2026-05-02",
-  "cacheVersion": "20260502-4x-l5",
+  "cacheVersion": "20260502-42cae18c",
   "sourceCRS": "EPSG:3006",
   "tileCRS": "EPSG:4326",
   "rasterSize": [
-    16384,
+    8192,
     16384
   ],
-  "tileCount": 1365,
+  "tileCount": 682,
   "attribution": "© Lantmäteriet, CC BY 4.0",
   "processing": "RGB GeoTIFF mosaic reprojected to EPSG:4326; WebP quality 88"
 }
