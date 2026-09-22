@@ -91,7 +91,7 @@ function applyVisualSettings(){const settings=imageryOriginalPreview?defaultVisu
 async function loadOrthophoto(){
   const response=await fetch(`${courseMeta.imagery}/metadata.json`); if(!response.ok) throw Error('Ortofotots metadata saknas');
   const m=await response.json(), rectangle=C.Rectangle.fromDegrees(...m.bounds);orthophotoBounds=m.bounds;
-  const provider=new C.UrlTemplateImageryProvider({url:`${courseMeta.imagery}/{z}/{x}/{y}.webp?v=native16`,rectangle,tilingScheme:new C.GeographicTilingScheme({rectangle,numberOfLevelZeroTilesX:m.levelZeroTilesX,numberOfLevelZeroTilesY:m.levelZeroTilesY}),tileWidth:m.tileSize,tileHeight:m.tileSize,minimumLevel:0,maximumLevel:m.maximumLevel,hasAlphaChannel:true,credit:new C.Credit(`Ortofoto © Lantmäteriet · CC BY 4.0 · ${m.date||'2026'}`,true)});
+  const provider=new C.UrlTemplateImageryProvider({url:`${courseMeta.imagery}/{z}/{x}/{y}.webp?v=${m.cacheVersion||'native16'}`,rectangle,tilingScheme:new C.GeographicTilingScheme({rectangle,numberOfLevelZeroTilesX:m.levelZeroTilesX,numberOfLevelZeroTilesY:m.levelZeroTilesY}),tileWidth:m.tileSize,tileHeight:m.tileSize,minimumLevel:0,maximumLevel:m.maximumLevel,hasAlphaChannel:true,credit:new C.Credit(`Ortofoto © Lantmäteriet · CC BY 4.0 · ${m.date||'2026'}`,true)});
   orthophotoLayer=viewer.imageryLayers.addImageryProvider(provider); state.imagery=true;applyVisualSettings();
   provider.errorEvent.addEventListener(()=>status('En ortofotoruta kunde inte laddas. Ladda om för att försöka igen.'));
   viewer.scene.globe.cartographicLimitRectangle=rectangle; viewer.scene.backgroundColor=C.Color.fromCssColorString('#0b211d');
